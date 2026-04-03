@@ -1,0 +1,326 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <header class="pd-hero">
+      <h1 class="pd-hero-title">AI Health Assistant</h1>
+      <p class="pd-hero-sub">Get personalized health insights based on your symptoms and medical history</p>
+    </header>
+
+    <div class="pd-ai-assistant">
+      <section class="pd-panel">
+        <h2 class="pd-panel-title">Describe Your Symptoms</h2>
+        <p class="pd-panel-sub">Tell the AI assistant what you're experiencing. It will provide personalized suggestions based on your medical history.</p>
+        
+        {% if patient_data %}
+        <div class="pd-ai-context">
+          <h3>Your Medical Context</h3>
+          <div class="pd-context-grid">
+            <div class="pd-context-item">
+              <strong>Blood Group:</strong> {{ patient_data.blood_group or 'Not specified' }}
+            </div>
+            <div class="pd-context-item">
+              <strong>Current Medications:</strong> {{ patient_data.medications or 'None' }}
+            </div>
+            <div class="pd-context-item">
+              <strong>Known Conditions:</strong> {{ patient_data.conditions or 'None' }}
+            </div>
+            <div class="pd-context-item">
+              <strong>Allergies:</strong> {{ patient_data.allergies or 'None' }}
+            </div>
+          </div>
+          
+          {% if recent_files or current_prescriptions or recent_appointments %}
+          <div class="pd-recent-activity">
+            <h4>Recent Activity</h4>
+            {% if current_prescriptions %}
+            <div class="pd-activity-section">
+              <strong>Current Prescriptions:</strong>
+              <ul class="pd-activity-list">
+                {% for rx in current_prescriptions %}
+                <li>{{ rx.medicine_name }} - {{ rx.dose }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            
+            {% if recent_files %}
+            <div class="pd-activity-section">
+              <strong>Recent Medical Files:</strong>
+              <ul class="pd-activity-list">
+                {% for file in recent_files %}
+                <li>{{ file.filename }} ({{ file.category }})</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            
+            {% if recent_appointments %}
+            <div class="pd-activity-section">
+              <strong>Recent Visits:</strong>
+              <ul class="pd-activity-list">
+                {% for appt in recent_appointments %}
+                <li>{{ appt.reason }} - {{ appt.status }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="pd-ai-form">
+          <div class="pd-form-group">
+            <label class="pd-form-label" for="symptoms">Your Symptoms</label>
+            <textarea class="pd-form-input pd-form-textarea" id="symptoms" name="symptoms" rows="4" required placeholder="e.g. I have been experiencing headaches, nausea, and feel tired for the past 3 days...">{{ symptoms or '' }}</textarea>
+          </div>
+          
+          <div class="pd-form-group">
+            <label class="pd-form-label" for="age_years">Your Age (optional)</label>
+            <input class="pd-form-input" type="number" id="age_years" name="age_years" min="0" max="120" placeholder="e.g. 25" value="{{ age_years or '' }}" />
+          </div>
+          
+          <div class="pd-form-actions">
+            <button type="submit" class="pd-btn-primary">Get AI Suggestions</button>
+            <a href="{{ url_for('core.dashboard') }}" class="pd-btn-secondary">Cancel</a>
+          </div>
+        </form>
+      </section>
+
+      {% if result %}
+      <section class="pd-panel pd-ai-result">
+        <h2 class="pd-panel-title">AI Health Suggestions</h2>
+        
+        {% if result.age_note %}
+        <div class="pd-ai-note">
+          <strong>Note:</strong> {{ result.age_note }}
+        </div>
+        {% endif %}
+        
+        {% if result.personalized_note %}
+        <div class="pd-ai-personalized">
+          <strong>🩺 Personalized for You:</strong> {{ result.personalized_note }}
+        </div>
+        {% endif %}
+        
+        <div class="pd-ai-section">
+          <h3 class="pd-ai-subtitle">Possible Causes</h3>
+          <ul class="pd-ai-list">
+            {% for d in result.diagnoses %}
+            <li>{{ d }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        
+        <div class="pd-ai-section">
+          <h3 class="pd-ai-subtitle">Recommended Actions</h3>
+          <ul class="pd-ai-list">
+            {% for t in result.tests %}
+            <li>{{ t }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        
+        <div class="pd-ai-disclaimer">
+          <strong>⚠️ Important:</strong> {{ result.disclaimer }}
+        </div>
+        
+        <div class="pd-ai-actions">
+          <a href="{{ url_for('modules.roadmap') }}#appointments-section" class="pd-btn-primary">Book Appointment</a>
+          <a href="{{ url_for('modules.roadmap') }}#prescriptions-section" class="pd-btn-secondary">Manage Prescriptions</a>
+        </div>
+      </section>
+      {% endif %}
+    </div>
+  </div>
+
+  <style>
+    .pd-ai-assistant {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .pd-back-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--accent);
+      text-decoration: none;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    
+    .pd-ai-context {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .pd-context-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    .pd-context-item {
+      font-size: 0.875rem;
+    }
+    
+    .pd-recent-activity h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    
+    .pd-activity-section {
+      margin-bottom: 0.75rem;
+    }
+    
+    .pd-activity-section strong {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .pd-activity-list {
+      margin: 0.25rem 0 0 0;
+      padding-left: 1rem;
+      font-size: 0.8rem;
+    }
+    
+    .pd-activity-list li {
+      margin-bottom: 0.25rem;
+    }
+    
+    .pd-ai-form {
+      margin-top: 1.5rem;
+    }
+    
+    .pd-form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .pd-form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .pd-form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    
+    .pd-form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .pd-form-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    .pd-btn-primary {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .pd-btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid #dee2e6;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .pd-ai-result {
+      margin-top: 2rem;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.5rem;
+      background: #f8f9fa;
+    }
+    
+    .pd-ai-note {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .pd-ai-personalized {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .pd-ai-section {
+      margin-bottom: 1.5rem;
+    }
+    
+    .pd-ai-subtitle {
+      margin: 0 0 0.75rem 0;
+      font-size: 1.1rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .pd-ai-list {
+      margin: 0;
+      padding-left: 1.5rem;
+    }
+    
+    .pd-ai-list li {
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+    
+    .pd-ai-disclaimer {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+    }
+    
+    .pd-ai-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+      .pd-context-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .pd-form-actions,
+      .pd-ai-actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+{% endblock %}

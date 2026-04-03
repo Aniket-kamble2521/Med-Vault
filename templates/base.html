@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Medical History Portable Vault" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">Medical History Portable Vault</div>
+        <nav class="nav">
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('core.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('core.settings') }}">Settings</a>
+            <a href="{{ url_for('modules.roadmap') }}">Modules</a>
+            <form action="{{ url_for('auth.logout') }}" method="post" class="inline">
+              <button class="linklike" type="submit">Logout</button>
+            </form>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.register') }}">Register</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash">
+            {% for message in messages %}
+              <div class="flash-item">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

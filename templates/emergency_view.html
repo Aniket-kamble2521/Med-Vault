@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emergency Medical Summary</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <style>
+      .emergency-summary {
+        background: #f8f9fa;
+        border: 2px solid #e74c3c;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+      .medical-section {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        background: white;
+      }
+      .medical-section h3 {
+        color: #495057;
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 0.5rem;
+      }
+      .medical-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .medical-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f8f9fa;
+      }
+      .medical-list li:last-child {
+        border-bottom: none;
+      }
+      .file-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .file-category {
+        background: #007bff;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      .appointment-status {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      .status-scheduled { background: #28a745; color: white; }
+      .status-completed { background: #17a2b8; color: white; }
+      .status-cancelled { background: #dc3545; color: white; }
+      .allergy-severe { background: #dc3545; color: white; }
+      .allergy-moderate { background: #fd7e14; color: white; }
+      .allergy-mild { background: #ffc107; color: #212529; }
+      .vital-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+      }
+      .vital-value {
+        font-weight: 600;
+        color: #007bff;
+      }
+      .alert-header {
+        background: #dc3545;
+        color: white;
+        padding: 1rem;
+        border-radius: 6px 6px 0 0;
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 0;
+      }
+      .summary {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 1rem 0;
+      }
+      .summary .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+      }
+      .summary .row:last-child {
+        border-bottom: none;
+      }
+      .summary .k {
+        font-weight: 600;
+        color: #495057;
+      }
+      .summary .v {
+        color: #212529;
+      }
+    </style>
+  </head>
+  <body class="emergency">
+    <main class="container">
+      <div class="card">
+        <div class="alert-header">
+          🚨 EMERGENCY MEDICAL ACCESS 🚨
+        </div>
+        
+        <h1>Emergency Medical Summary</h1>
+        <p class="muted small">This link is temporary. Expires at (UTC): <b>{{ expires_at.isoformat() }}</b></p>
+
+        <!-- AI-Generated Emergency Summary -->
+        <div class="emergency-summary">
+          <strong>🤖 AI Emergency Summary:</strong><br>
+          {{ medical_summary or 'No medical data available. Please contact patient directly for medical information.' }}
+        </div>
+
+        <!-- Basic Information -->
+        <div class="summary">
+          <div class="row"><div class="k">Patient</div><div class="v">{{ full_name or "Unknown Patient" }}</div></div>
+          <div class="row"><div class="k">Blood Group</div><div class="v">{{ blood_group or "Not specified" }}</div></div>
+          <div class="row"><div class="k">Allergies</div><div class="v">{{ allergies or "No known allergies recorded" }}</div></div>
+          <div class="row"><div class="k">Current Medications</div><div class="v">{{ medications or "No current medications recorded" }}</div></div>
+          <div class="row"><div class="k">Important Conditions</div><div class="v">{{ conditions or "No chronic conditions recorded" }}</div></div>
+        </div>
+
+        <!-- Detailed Medical Records -->
+        <div class="medical-section">
+          <h3>📋 Medical Records ({{ files|length if files else 0 }} files)</h3>
+          {% if files %}
+            <ul class="medical-list">
+              {% for file in files %}
+              <li class="file-item">
+                <div>
+                  <strong>{{ file.filename }}</strong>
+                  <span class="file-category">{{ file.category or 'Uncategorized' }}</span>
+                </div>
+                <small>{{ file.uploaded_at[:10] }} {% if file.doc_source %}• {{ file.doc_source }}{% endif %}</small>
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p style="color: #6c757d; font-style: italic;">No medical records uploaded yet. Patient should upload medical documents for complete history.</p>
+          {% endif %}
+        </div>
+
+        <!-- Appointments -->
+        <div class="medical-section">
+          <h3>📅 Recent Appointments ({{ appointments|length if appointments else 0 }})</h3>
+          {% if appointments %}
+            <ul class="medical-list">
+              {% for appt in appointments %}
+              <li>
+                <strong>{{ appt.reason }}</strong> with Dr. {{ appt.doctor_name or 'Unknown' }}
+                <span class="appointment-status status-{{ appt.status }}">{{ appt.status }}</span>
+                <br><small>{{ appt.appointment_at[:10] }}</small>
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p style="color: #6c757d; font-style: italic;">No appointment history available.</p>
+          {% endif %}
+        </div>
+
+        <!-- Prescriptions -->
+        <div class="medical-section">
+          <h3>💊 Prescriptions ({{ prescriptions|length if prescriptions else 0 }})</h3>
+          {% if prescriptions %}
+            <ul class="medical-list">
+              {% for rx in prescriptions %}
+              <li>
+                <strong>{{ rx.medicine_name }}</strong> - {{ rx.dosage }} ({{ rx.frequency }})
+                {% if rx.doctor_name %}<br><small>Dr. {{ rx.doctor_name }}</small>{% endif %}
+                {% if rx.start_date %}<br><small>{{ rx.start_date }} {% if rx.end_date %}to {{ rx.end_date }}{% endif %}</small>{% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p style="color: #6c757d; font-style: italic;">No prescription records available.</p>
+          {% endif %}
+        </div>
+
+        <!-- Allergies Registry -->
+        <div class="medical-section">
+          <h3>⚠️ Allergies ({{ allergies_registry|length if allergies_registry else 0 }})</h3>
+          {% if allergies_registry %}
+            <ul class="medical-list">
+              {% for allergy in allergies_registry %}
+              <li>
+                <strong>{{ allergy.allergy_name }}</strong>
+                <span class="allergy-severity allergy-{{ allergy.severity }}">{{ allergy.severity }}</span>
+                {% if allergy.notes %}<br><small>{{ allergy.notes }}</small>{% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p style="color: #28a745; font-style: italic;">No allergies recorded in registry.</p>
+          {% endif %}
+        </div>
+
+        <!-- Vitals -->
+        <div class="medical-section">
+          <h3>📊 Recent Vitals ({{ vitals|length if vitals else 0 }})</h3>
+          {% if vitals %}
+            {% for vital in vitals %}
+            <div class="vital-item">
+              <div>
+                <strong>{{ vital.logged_at[:10] }}</strong>
+                {% if vital.symptoms %}<br><small>Notes: {{ vital.symptoms }}</small>{% endif %}
+              </div>
+              <div class="vital-value">
+                {% if vital.bp_systolic and vital.bp_diastolic %}BP: {{ vital.bp_systolic }}/{{ vital.bp_diastolic }}{% endif %}
+                {% if vital.heart_rate %} • HR: {{ vital.heart_rate }}{% endif %}
+                {% if vital.sugar %} • Glucose: {{ vital.sugar }}{% endif %}
+                {% if vital.weight %} • Weight: {{ vital.weight }}kg{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p style="color: #6c757d; font-style: italic;">No vital signs recorded.</p>
+          {% endif %}
+        </div>
+
+        <p class="muted small">
+          <strong>⚠️ Emergency Use Only:</strong> This page contains protected patient medical information. 
+          This link expires in {% if expires_at %}{{ expires_at.strftime('%H:%M:%S') }}{% else %}Unknown time{% endif %}.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Start consultation</h1>
+    <p class="dr-page-lead">Open a consultation session for a patient. Status stays active until you complete it in your workflow.</p>
+    <form method="post" class="dr-panel dr-settings-form">
+      <label class="dr-label-full" for="patient_name">Patient</label>
+      {% if patients %}
+        <input class="dr-input" id="patient_name" name="patient_name" list="patient-list" required placeholder="Type or pick from your list" />
+        <datalist id="patient-list">
+          {% for p in patients %}
+            <option value="{{ p.full_name }}"></option>
+          {% endfor %}
+        </datalist>
+      {% else %}
+        <input class="dr-input" id="patient_name" name="patient_name" required placeholder="Patient full name" />
+      {% endif %}
+      <label class="dr-label-full" for="chief_complaint" style="margin-top: 1rem">Chief complaint (optional)</label>
+      <input class="dr-input" id="chief_complaint" name="chief_complaint" placeholder="e.g. Chest tightness, follow-up" />
+      <label class="dr-label-full" for="notes" style="margin-top: 1rem">Session notes (optional)</label>
+      <textarea class="dr-input" id="notes" name="notes" rows="3"></textarea>
+      <div class="dr-form-actions" style="margin-top: 1rem">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Start consultation</button>
+        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

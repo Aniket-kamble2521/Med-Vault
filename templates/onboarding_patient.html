@@ -1,0 +1,68 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <div class="onboard-wrap">
+      <div class="dr-panel onboard-step is-active" data-step="1">
+        <h1 class="dr-page-title">Welcome to MedVault</h1>
+        <p class="dr-page-lead">What matters most when you check your reports?</p>
+        <div class="dr-onboard-options">
+          <label class="dr-onboard-opt"><input type="radio" name="q1" value="accuracy" checked /> Verified and accurate details</label>
+          <label class="dr-onboard-opt"><input type="radio" name="q1" value="simple" /> Easy-to-read explanations</label>
+          <label class="dr-onboard-opt"><input type="radio" name="q1" value="speed" /> Fast access to answers</label>
+          <label class="dr-onboard-opt"><input type="radio" name="q1" value="all" /> All of these are important</label>
+        </div>
+        <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button">Continue</button>
+      </div>
+
+      <div class="dr-panel onboard-step" data-step="2">
+        <h1 class="dr-page-title">How often do you need help?</h1>
+        <p class="dr-page-lead">How often do you contact your doctor to understand meds or reports?</p>
+        <div class="dr-onboard-options">
+          <label class="dr-onboard-opt"><input type="radio" name="q2" value="often" checked /> Almost every time</label>
+          <label class="dr-onboard-opt"><input type="radio" name="q2" value="sometimes" /> A few times per report</label>
+          <label class="dr-onboard-opt"><input type="radio" name="q2" value="complex" /> Only for complex cases</label>
+          <label class="dr-onboard-opt"><input type="radio" name="q2" value="rare" /> Hardly ever</label>
+        </div>
+        <div class="dr-onboard-actions">
+          <button class="dr-btn-outline dr-btn-gradient--inline onboard-prev" type="button">Back</button>
+          <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button">Continue</button>
+        </div>
+      </div>
+
+      <div class="dr-panel onboard-step" data-step="3">
+        <h1 class="dr-page-title">Scan reports clearly</h1>
+        <p class="dr-page-lead">A quick guide before you upload documents.</p>
+        <div class="dr-scan-guide">
+          <div class="dr-scan-item">
+            <div class="dr-scan-icon" aria-hidden="true">☀</div>
+            <div>
+              <strong>Good lighting</strong>
+              <div class="dr-hint">Bright, even light with no shadows.</div>
+            </div>
+          </div>
+          <div class="dr-scan-item">
+            <div class="dr-scan-icon" aria-hidden="true">◎</div>
+            <div>
+              <strong>Sharp focus</strong>
+              <div class="dr-hint">Text should be readable, no blur.</div>
+            </div>
+          </div>
+          <div class="dr-scan-item">
+            <div class="dr-scan-icon" aria-hidden="true">▢</div>
+            <div>
+              <strong>Full frame</strong>
+              <div class="dr-hint">Capture the complete report area.</div>
+            </div>
+          </div>
+        </div>
+        <div class="dr-scan-preview">Correct scan framing preview</div>
+        <form method="post" action="{{ url_for('core.complete_onboarding') }}">
+          <div class="dr-onboard-actions">
+            <button class="dr-btn-outline dr-btn-gradient--inline onboard-prev" type="button">Back</button>
+            <button class="dr-btn-gradient dr-btn-gradient--inline" type="submit">Explore my health</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

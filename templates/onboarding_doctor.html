@@ -1,0 +1,47 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-onboard-wrap">
+    <p class="dr-onboard-badge">Doctor setup</p>
+    <div class="dr-panel onboard-step is-active dr-onboard-step" data-step="1">
+      <h1 class="dr-onboard-title">Welcome to MedVault Clinical</h1>
+      <p class="dr-onboard-lead">What matters most in your daily workflow?</p>
+      <div class="dr-onboard-options">
+        <label><input type="radio" name="dq1" value="records" checked /> Verified patient records &amp; history at a glance</label>
+        <label><input type="radio" name="dq1" value="handoff" /> Fast handoffs with care teams</label>
+        <label><input type="radio" name="dq1" value="imaging" /> Clear imaging &amp; lab integration</label>
+        <label><input type="radio" name="dq1" value="all" /> All of these are priorities</label>
+      </div>
+      <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button" style="margin-top: 1rem">Continue</button>
+    </div>
+
+    <div class="dr-panel onboard-step dr-onboard-step" data-step="2">
+      <h1 class="dr-onboard-title">Reports &amp; results</h1>
+      <p class="dr-onboard-lead">How do you prefer to handle incoming reports and results?</p>
+      <div class="dr-onboard-options">
+        <label><input type="radio" name="dq2" value="realtime" checked /> Review as they arrive</label>
+        <label><input type="radio" name="dq2" value="batch" /> Batch review at end of day</label>
+        <label><input type="radio" name="dq2" value="priority" /> Strictly by clinical priority</label>
+        <label><input type="radio" name="dq2" value="mixed" /> Depends on the setting</label>
+      </div>
+      <div class="dr-onboard-actions">
+        <button class="dr-btn-outline onboard-prev" type="button">Back</button>
+        <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button">Continue</button>
+      </div>
+    </div>
+
+    <div class="dr-panel onboard-step dr-onboard-step" data-step="3">
+      <h1 class="dr-onboard-title">Emergency access</h1>
+      <p class="dr-onboard-lead">When a patient shares an emergency QR, you can open their essential health summary instantly—ideal for ER and urgent consults.</p>
+      <ul class="dr-onboard-bullets">
+        <li>Use <strong>Scan patient emergency QR</strong> from your dashboard to read the same view anyone gets from the QR.</li>
+        <li>QR links expire automatically for privacy.</li>
+      </ul>
+      <form method="post" action="{{ url_for('core.complete_onboarding') }}">
+        <div class="dr-onboard-actions">
+          <button class="dr-btn-outline onboard-prev" type="button">Back</button>
+          <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Enter Doctor Portal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

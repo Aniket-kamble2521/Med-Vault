@@ -1,0 +1,43 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">AI Health Assistant</h1>
+    <p class="dr-page-lead">
+      Enter symptoms and optional age. The assistant suggests <strong>possible differentials</strong> and <strong>tests to consider</strong> — for decision support only, not a diagnosis.
+    </p>
+
+    <form method="post" class="dr-panel dr-settings-form">
+      <label class="dr-label-full" for="symptoms">Symptoms &amp; context</label>
+      <textarea class="dr-input" id="symptoms" name="symptoms" rows="4" required placeholder="e.g. Chest tightness on exertion, nausea">{{ symptoms or '' }}</textarea>
+      <label class="dr-label-full" for="age_years" style="margin-top: 1rem">Patient age (optional)</label>
+      <input class="dr-input" type="number" id="age_years" name="age_years" min="0" max="120" placeholder="e.g. 58" value="{{ age_years or '' }}" />
+      <div class="dr-form-actions" style="margin-top: 1rem">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Get suggestions</button>
+        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+
+    {% if result %}
+      <section class="dr-panel dr-ai-result" style="margin-top: 1.5rem">
+        <h2 class="dr-side-title">Suggestions</h2>
+        {% if result.age_note %}
+          <p class="dr-ai-note">{{ result.age_note }}</p>
+        {% endif %}
+        <h3 class="dr-ai-sub">Possible diagnoses / differentials</h3>
+        <ul class="dr-ai-list">
+          {% for d in result.diagnoses %}
+            <li>{{ d }}</li>
+          {% endfor %}
+        </ul>
+        <h3 class="dr-ai-sub">Tests to consider</h3>
+        <ul class="dr-ai-list">
+          {% for t in result.tests %}
+            <li>{{ t }}</li>
+          {% endfor %}
+        </ul>
+        <p class="dr-ai-disclaimer">{{ result.disclaimer }}</p>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

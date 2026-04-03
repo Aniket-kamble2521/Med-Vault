@@ -1,0 +1,100 @@
+{% extends "base_medvault.html" %}
+{% block content %}
+  <header class="mv-header">
+    <div class="mv-brand-row">
+      <div class="mv-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
+      <div class="mv-brand-text">
+        <h1 class="mv-title"><span class="mv-title-accent">MedVault</span></h1>
+        <p class="mv-tagline">Secure Medical History Vault</p>
+      </div>
+    </div>
+    <p class="mv-shield">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+      Your health data, protected and portable.
+    </p>
+  </header>
+
+  <div class="mv-grid">
+    <article class="mv-card">
+      <div class="mv-card-img-wrap">
+        <img
+          src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&q=85&auto=format&fit=crop"
+          alt=""
+          width="800"
+          height="450"
+          loading="lazy"
+        />
+      </div>
+      <div class="mv-float-icon">
+        <span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 4v6a6 6 0 0012 0V4" />
+            <path d="M12 10v10" />
+            <path d="M9 20h6" />
+            <circle cx="6" cy="4" r="2" />
+            <circle cx="18" cy="4" r="2" />
+          </svg>
+        </span>
+      </div>
+      <div class="mv-card-body">
+        <h2>Doctor Login</h2>
+        <p>Access patient records and medical data</p>
+        <ul class="mv-bullets">
+          <li><span class="mv-dot mv-dot--teal"></span> View and update patient records</li>
+          <li><span class="mv-dot mv-dot--teal"></span> Prescribe medications</li>
+          <li><span class="mv-dot mv-dot--teal"></span> Access medical history</li>
+        </ul>
+        <div class="mv-spacer"></div>
+        <a class="mv-btn mv-btn--doctor" href="{{ url_for('auth.login', role='doctor') }}">Login as Doctor</a>
+      </div>
+    </article>
+
+    <article class="mv-card">
+      <div class="mv-card-img-wrap">
+        <img
+          src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&q=85&auto=format&fit=crop"
+          alt=""
+          width="800"
+          height="450"
+          loading="lazy"
+        />
+      </div>
+      <div class="mv-float-icon">
+        <span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+            <path d="M4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+        </span>
+      </div>
+      <div class="mv-card-body">
+        <h2>Patient Login</h2>
+        <p>View your personal health records</p>
+        <ul class="mv-bullets">
+          <li><span class="mv-dot mv-dot--blue"></span> Access your medical history</li>
+          <li><span class="mv-dot mv-dot--blue"></span> View prescriptions and reports</li>
+          <li><span class="mv-dot mv-dot--blue"></span> Book appointments</li>
+        </ul>
+        <div class="mv-spacer"></div>
+        <a class="mv-btn mv-btn--patient" href="{{ url_for('auth.login', role='patient') }}">Login as Patient</a>
+      </div>
+    </article>
+  </div>
+
+  <p class="mv-links" style="margin-top: 1.5rem">
+    New here?
+    <a href="{{ url_for('auth.register', role='patient') }}">Register as patient</a>
+    <span style="opacity: 0.65"> · </span>
+    <a href="{{ url_for('auth.register', role='doctor') }}">Register as doctor</a>
+  </p>
+
+  <footer class="mv-footer">
+    Protected by end-to-end encryption • HIPAA Compliant
+  </footer>
+{% endblock %}

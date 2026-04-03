@@ -1,0 +1,66 @@
+{% extends "base_medvault.html" %}
+{% block content %}
+  {% set heading = "Login" %}
+  {% set sub = "Sign in with your MedVault account." %}
+  {% if role == "doctor" %}
+    {% set heading = "Doctor Login" %}
+    {% set sub = "Access patient records and medical data." %}
+  {% elif role == "patient" %}
+    {% set heading = "Patient Login" %}
+    {% set sub = "View your personal health records." %}
+  {% endif %}
+
+  <header class="mv-header" style="margin-bottom: 1.75rem">
+    <div class="mv-brand-row">
+      <div class="mv-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
+      <div class="mv-brand-text">
+        <h1 class="mv-title"><span class="mv-title-accent">MedVault</span></h1>
+        <p class="mv-tagline">Secure Medical History Vault</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="mv-auth-wrap">
+    <a class="mv-back" href="{{ url_for('core.index') }}">← Back to portal</a>
+    <div class="mv-auth-card">
+      <h1>{{ heading }}</h1>
+      <p class="mv-sub">{{ sub }}</p>
+      <form method="post" class="mv-form" action="{{ url_for('auth.login') }}">
+        {% if role %}
+          <input type="hidden" name="role" value="{{ role }}" />
+        {% endif %}
+        <label>
+          <span class="mv-label">Username</span>
+          <input class="mv-input" name="username" autocomplete="username" required />
+        </label>
+        <label>
+          <span class="mv-label">Password</span>
+          <input class="mv-input" name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button
+          type="submit"
+          class="mv-btn {% if role == 'doctor' %}mv-btn--doctor{% else %}mv-btn--patient{% endif %}"
+          style="margin-top: 0.5rem"
+        >
+          {% if role == "doctor" %}Login as Doctor{% elif role == "patient" %}Login as Patient{% else %}Sign in{% endif %}
+        </button>
+      </form>
+      <p class="mv-links">
+        No account yet?
+        <a href="{{ url_for('auth.register', role=role or 'patient') }}">Register</a>
+        {% if not role %}
+          <span style="opacity: 0.65"> · </span>
+          <a href="{{ url_for('auth.register', role='doctor') }}">as doctor</a>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <footer class="mv-footer">
+    Protected by end-to-end encryption • HIPAA Compliant
+  </footer>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Health Analytics</h1>
+    <p class="dr-page-lead">
+      Patient trends, condition mix from your consultations, and a recovery / engagement index. Charts use your portal data where available.
+    </p>
+
+    <div class="dr-analytics-kpis">
+      <div class="dr-panel dr-analytics-kpi">
+        <span class="dr-analytics-kpi-label">Total patients</span>
+        <strong class="dr-analytics-kpi-value">{{ chart.total_patients }}</strong>
+      </div>
+      <div class="dr-panel dr-analytics-kpi">
+        <span class="dr-analytics-kpi-label">Consultations recorded</span>
+        <strong class="dr-analytics-kpi-value">{{ chart.total_consults }}</strong>
+      </div>
+    </div>
+
+    <div class="dr-analytics-grid">
+      <section class="dr-panel dr-chart-panel">
+        <h2 class="dr-side-title">Patient trends</h2>
+        <p class="dr-hint">New patients added per month (last 6 months).</p>
+        <div class="dr-chart-wrap">
+          <canvas id="chart-trends" height="220"></canvas>
+        </div>
+      </section>
+      <section class="dr-panel dr-chart-panel">
+        <h2 class="dr-side-title">Disease / symptom mix</h2>
+        <p class="dr-hint">Buckets inferred from chief complaints (demo mix if none yet).</p>
+        <div class="dr-chart-wrap">
+          <canvas id="chart-disease" height="220"></canvas>
+        </div>
+      </section>
+      <section class="dr-panel dr-chart-panel dr-chart-panel--wide">
+        <h2 class="dr-side-title">Recovery / engagement index</h2>
+        <p class="dr-hint">Higher values suggest stronger visit follow-through (modelled from appointment activity).</p>
+        <div class="dr-chart-wrap">
+          <canvas id="chart-recovery" height="240"></canvas>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#3b82f6";
+    const grid = getComputedStyle(document.body).getPropertyValue("--border").trim() || "#e2e8f0";
+    const text = getComputedStyle(document.body).getPropertyValue("--text-muted").trim() || "#64748b";
+
+    const trendLabels = {{ chart.trend_labels | tojson }};
+    const trendValues = {{ chart.trend_values | tojson }};
+    const diseaseLabels = {{ chart.disease_labels | tojson }};
+    const diseaseValues = {{ chart.disease_values | tojson }};
+    const recoveryLabels = {{ chart.recovery_labels | tojson }};
+    const recoveryValues = {{ chart.recovery_values | tojson }};
+
+    new Chart(document.getElementById("chart-trends"), {
+      type: "line",
+      data: {
+        labels: trendLabels,
+        datasets: [{
+          label: "New patients",
+          data: trendValues,
+          borderColor: accent,
+          backgroundColor: accent + "22",
+          fill: true,
+          tension: 0.35,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: text }, grid: { color: grid } },
+          y: { beginAtZero: true, ticks: { color: text }, grid: { color: grid } },
+        },
+      },
+    });
+
+    new Chart(document.getElementById("chart-disease"), {
+      type: "doughnut",
+      data: {
+        labels: diseaseLabels,
+        datasets: [{
+          data: diseaseValues,
+          backgroundColor: ["#0ea5e9", "#8b5cf6", "#10b981", "#94a3b8"],
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom", labels: { color: text } } },
+      },
+    });
+
+    new Chart(document.getElementById("chart-recovery"), {
+      type: "bar",
+      data: {
+        labels: recoveryLabels,
+        datasets: [{
+          label: "Index %",
+          data: recoveryValues,
+          backgroundColor: accent + "99",
+          borderRadius: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: text }, grid: { display: false } },
+          y: { min: 60, max: 100, ticks: { color: text }, grid: { color: grid } },
+        },
+      },
+    });
+  </script>
+{% endblock %}

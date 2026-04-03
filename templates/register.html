@@ -1,0 +1,77 @@
+{% extends "base_medvault.html" %}
+{% set reg_role = role or 'patient' %}
+{% block content %}
+  <header class="mv-header" style="margin-bottom: 1.75rem">
+    <div class="mv-brand-row">
+      <div class="mv-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
+      <div class="mv-brand-text">
+        <h1 class="mv-title"><span class="mv-title-accent">MedVault</span></h1>
+        <p class="mv-tagline">
+          {% if reg_role == 'doctor' %}
+            Create a doctor account
+          {% else %}
+            Create a patient account
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <div class="mv-auth-wrap">
+    <a class="mv-back" href="{{ url_for('core.index') }}">← Back to portal</a>
+    <div class="mv-auth-card">
+      <h1>
+        {% if reg_role == 'doctor' %}
+          Register as a doctor
+        {% else %}
+          Register as a patient
+        {% endif %}
+      </h1>
+      <p class="mv-sub">
+        {% if reg_role == 'doctor' %}
+          Access the clinical portal, appointments, and patient emergency QR tools after sign-in.
+        {% else %}
+          Store records, reminders, and your personal emergency QR in one place.
+        {% endif %}
+      </p>
+      <form method="post" class="mv-form" action="{{ url_for('auth.register') }}">
+        <input type="hidden" name="role" value="{{ reg_role }}" />
+        <label>
+          <span class="mv-label">Username</span>
+          <input class="mv-input" name="username" autocomplete="username" required minlength="3" />
+        </label>
+        <label>
+          <span class="mv-label">Password</span>
+          <input class="mv-input" name="password" type="password" autocomplete="new-password" required minlength="6" />
+        </label>
+        <button
+          type="submit"
+          class="mv-btn {% if reg_role == 'doctor' %}mv-btn--doctor{% else %}mv-btn--patient{% endif %}"
+          style="margin-top: 0.5rem"
+        >
+          Create account
+        </button>
+      </form>
+      <p class="mv-links">
+        Already have an account?
+        <a href="{{ url_for('auth.login', role=reg_role) }}">Login as {% if reg_role == 'doctor' %}doctor{% else %}patient{% endif %}</a>
+      </p>
+      <p class="mv-links" style="margin-top: 0.5rem">
+        Wrong account type?
+        {% if reg_role == 'doctor' %}
+          <a href="{{ url_for('auth.register', role='patient') }}">Register as patient</a>
+        {% else %}
+          <a href="{{ url_for('auth.register', role='doctor') }}">Register as doctor</a>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <footer class="mv-footer">
+    Protected by end-to-end encryption • HIPAA Compliant
+  </footer>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <h1 class="dr-page-title">Appearance &amp; settings</h1>
+    <p class="dr-page-lead">Light, clean look by default. Adjust theme and accent; updates apply everywhere in your patient portal.</p>
+    <p class="dr-hint" style="margin: -0.25rem 0 1rem">
+      Medical details (name, allergies, meds) are on your
+      <a href="{{ url_for('core.dashboard') }}#medical" class="dr-link">dashboard → Medical profile</a>.
+    </p>
+
+    <form method="post" class="dr-settings-form dr-panel">
+      <fieldset class="dr-fieldset">
+        <legend>Theme</legend>
+        <div class="dr-radio-row">
+          <label class="dr-radio">
+            <input type="radio" name="theme_mode" value="light" {% if theme.mode == 'light' %}checked{% endif %} />
+            <span>Light</span>
+          </label>
+          <label class="dr-radio">
+            <input type="radio" name="theme_mode" value="dark" {% if theme.mode == 'dark' %}checked{% endif %} />
+            <span>Dark</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="dr-fieldset">
+        <legend>Accent color</legend>
+        <p class="dr-hint">Used for buttons, links, and highlights.</p>
+        <div class="dr-color-row">
+          <input type="color" name="theme_accent" value="{{ theme.accent }}" class="dr-color-input" id="theme_accent" />
+          <label for="theme_accent" class="dr-color-label">{{ theme.accent }}</label>
+        </div>
+        <div class="dr-presets">
+          <span class="dr-hint">Presets:</span>
+          <button type="button" class="dr-preset" data-hex="#334155" style="background:#334155" aria-label="Slate"></button>
+          <button type="button" class="dr-preset" data-hex="#64748b" style="background:#64748b" aria-label="Gray"></button>
+          <button type="button" class="dr-preset" data-hex="#0f172a" style="background:#0f172a" aria-label="Ink"></button>
+          <button type="button" class="dr-preset" data-hex="#3b82f6" style="background:#3b82f6" aria-label="Blue"></button>
+          <button type="button" class="dr-preset" data-hex="#0d9488" style="background:#0d9488" aria-label="Teal"></button>
+        </div>
+      </fieldset>
+
+      <div class="dr-form-actions">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save changes</button>
+        <a href="{{ url_for('core.dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+  </div>
+  <script>
+    document.querySelectorAll(".dr-preset").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var hex = btn.getAttribute("data-hex");
+        var input = document.getElementById("theme_accent");
+        if (input && hex) {
+          input.value = hex;
+          var lab = document.querySelector(".dr-color-label");
+          if (lab) lab.textContent = hex;
+        }
+      });
+    });
+    var colorInput = document.getElementById("theme_accent");
+    if (colorInput) {
+      colorInput.addEventListener("input", function () {
+        var lab = document.querySelector(".dr-color-label");
+        if (lab) lab.textContent = colorInput.value;
+      });
+    }
+  </script>
+{% endblock %}

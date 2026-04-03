@@ -1,0 +1,110 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Back to dashboard</a>
+    <h1 class="dr-page-title">Scan patient emergency QR</h1>
+    <p class="dr-page-lead">
+      Point your camera at the patient’s MedVault emergency QR, or paste the link they share. You’ll see the same time-limited summary as anyone opening the link.
+    </p>
+
+    <section class="dr-panel dr-qr-panel">
+      <h2 class="dr-side-title">Camera</h2>
+      <p class="dr-hint">Allow camera access when prompted. Works best in good light.</p>
+      <div id="qr-reader" class="dr-qr-reader"></div>
+      <p id="qr-reader-status" class="dr-hint" role="status"></p>
+      <button type="button" class="dr-btn-outline" id="btn-stop-camera" hidden>Stop camera</button>
+    </section>
+
+    <section class="dr-panel">
+      <h2 class="dr-side-title">Or paste link / token</h2>
+      <p class="dr-hint">Paste the full emergency URL or just the token after <code>/emergency/</code>.</p>
+      <label class="dr-label-full" for="paste-emergency">Emergency URL or token</label>
+      <input type="text" id="paste-emergency" class="dr-input" placeholder="https://…/emergency/… or token" autocomplete="off" />
+      <div class="dr-form-actions" style="margin-top: 0.75rem">
+        <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" id="btn-open-paste">Open patient summary</button>
+      </div>
+      <p id="paste-error" class="dr-flash" style="display: none; margin-top: 0.75rem" role="alert"></p>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    (function () {
+      function extractEmergencyPath(text) {
+        var t = (text || "").trim();
+        var m = t.match(/\/emergency\/([^/?#]+)/);
+        if (m) return "/emergency/" + encodeURIComponent(m[1]);
+        if (/^[A-Za-z0-9_-]+={0,2}$/.test(t) && t.length >= 24) return "/emergency/" + encodeURIComponent(t);
+        return null;
+      }
+
+      function go(path) {
+        if (path) window.location.href = path;
+      }
+
+      var statusEl = document.getElementById("qr-reader-status");
+      var stopBtn = document.getElementById("btn-stop-camera");
+      var html5QrCode = null;
+
+      function setStatus(msg) {
+        if (statusEl) statusEl.textContent = msg || "";
+      }
+
+      if (typeof Html5Qrcode !== "undefined") {
+        html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode
+          .start(
+            { facingMode: "environment" },
+            { fps: 8, qrbox: { width: 260, height: 260 } },
+            function (decodedText) {
+              var path = extractEmergencyPath(decodedText);
+              if (path) {
+                setStatus("Opening patient summary…");
+                html5QrCode
+                  .stop()
+                  .then(function () {
+                    go(path);
+                  })
+                  .catch(function () {
+                    go(path);
+                  });
+              } else {
+                setStatus("That QR is not a MedVault emergency link. Try again.");
+              }
+            },
+            function () {}
+          )
+          .then(function () {
+            setStatus("Camera active — align the QR in the frame.");
+            if (stopBtn) stopBtn.hidden = false;
+          })
+          .catch(function (err) {
+            setStatus("Camera unavailable: " + (err && err.message ? err.message : "use paste below."));
+          });
+
+        if (stopBtn) {
+          stopBtn.addEventListener("click", function () {
+            if (!html5QrCode) return;
+            html5QrCode.stop().then(function () {
+              setStatus("Camera stopped.");
+              stopBtn.hidden = true;
+            });
+          });
+        }
+      }
+
+      document.getElementById("btn-open-paste").addEventListener("click", function () {
+        var raw = document.getElementById("paste-emergency").value;
+        var err = document.getElementById("paste-error");
+        var path = extractEmergencyPath(raw);
+        if (!path) {
+          err.style.display = "block";
+          err.textContent = "Could not find an emergency token. Paste the full URL from the patient’s QR or share.";
+          return;
+        }
+        err.style.display = "none";
+        go(path);
+      });
+    })();
+  </script>
+{% endblock %}

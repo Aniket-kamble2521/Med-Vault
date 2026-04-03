@@ -1,0 +1,20 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Add new patient</h1>
+    <p class="dr-page-lead">Save a patient to your practice list. You can use them when prescribing or starting a consultation.</p>
+    <form method="post" class="dr-panel dr-settings-form">
+      <label class="dr-label-full" for="full_name">Full name</label>
+      <input class="dr-input" id="full_name" name="full_name" required minlength="2" autocomplete="name" />
+      <label class="dr-label-full" for="phone" style="margin-top: 1rem">Phone (optional)</label>
+      <input class="dr-input" id="phone" name="phone" type="tel" autocomplete="tel" />
+      <label class="dr-label-full" for="notes" style="margin-top: 1rem">Notes (optional)</label>
+      <textarea class="dr-input" id="notes" name="notes" rows="3" style="resize: vertical"></textarea>
+      <div class="dr-form-actions" style="margin-top: 1rem">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save patient</button>
+        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

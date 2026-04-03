@@ -1,0 +1,5 @@
+Flask
+qrcode[pil]
+Flask-Login
+bcrypt
+cryptography

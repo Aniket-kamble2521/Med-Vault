@@ -1,0 +1,33 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Your profile</h1>
+    <p class="dr-page-lead">
+      This is how your name and details appear in the doctor portal. Clinical data you enter elsewhere stays separate.
+    </p>
+
+    <form method="post" class="dr-panel dr-settings-form">
+      <label class="dr-label-full" for="full_name">Display name</label>
+      <input class="dr-input" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ full_name }}" placeholder="e.g. Dr. Jane Smith" />
+
+      <label class="dr-label-full" for="doctor_specialty" style="margin-top: 1rem">Specialty</label>
+      <input class="dr-input" id="doctor_specialty" name="doctor_specialty" maxlength="120" value="{{ doctor_specialty }}" placeholder="e.g. Cardiology" />
+
+      <label class="dr-label-full" for="doctor_phone" style="margin-top: 1rem">Work phone (optional)</label>
+      <input class="dr-input" id="doctor_phone" name="doctor_phone" type="tel" maxlength="40" value="{{ doctor_phone }}" placeholder="Clinic or pager number" autocomplete="tel" />
+
+      <label class="dr-label-full" for="doctor_clinic" style="margin-top: 1rem">Practice / clinic (optional)</label>
+      <input class="dr-input" id="doctor_clinic" name="doctor_clinic" maxlength="200" value="{{ doctor_clinic }}" placeholder="e.g. City Heart Center" />
+
+      <label class="dr-label-full" for="doctor_bio" style="margin-top: 1rem">Short bio (optional)</label>
+      <textarea class="dr-input" id="doctor_bio" name="doctor_bio" rows="3" maxlength="500" placeholder="Languages, focus areas, or a line for colleagues…">{{ doctor_bio }}</textarea>
+      <p class="dr-hint">Stored securely. Max 500 characters.</p>
+
+      <div class="dr-form-actions" style="margin-top: 1rem">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save profile</button>
+        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

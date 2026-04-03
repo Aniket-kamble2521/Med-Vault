@@ -1,0 +1,28 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Schedule appointment</h1>
+    <p class="dr-page-lead">Add a visit to your calendar. It will appear under Today’s appointments when the date is today.</p>
+    <form method="post" class="dr-panel dr-settings-form">
+      <label class="dr-label-full" for="patient_name">Patient name</label>
+      <input class="dr-input" id="patient_name" name="patient_name" required placeholder="Full name" />
+      <label class="dr-label-full" for="reason" style="margin-top: 1rem">Reason (optional)</label>
+      <input class="dr-input" id="reason" name="reason" placeholder="e.g. Annual physical" />
+      <label class="dr-label-full" for="visit_date" style="margin-top: 1rem">Date</label>
+      <input class="dr-input" id="visit_date" name="visit_date" type="date" required />
+      <label class="dr-label-full" for="visit_time" style="margin-top: 1rem">Time</label>
+      <input class="dr-input" id="visit_time" name="visit_time" type="time" required />
+      <label class="dr-label-full" for="status" style="margin-top: 1rem">Status</label>
+      <select class="dr-input" id="status" name="status" style="cursor: pointer">
+        <option value="scheduled">Scheduled</option>
+        <option value="waiting">Waiting</option>
+        <option value="in_progress">In progress</option>
+      </select>
+      <div class="dr-form-actions" style="margin-top: 1rem">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save appointment</button>
+        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

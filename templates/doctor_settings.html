@@ -1,0 +1,77 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell dr-shell--narrow">
+    <h1 class="dr-page-title">Appearance &amp; settings</h1>
+    <p class="dr-page-lead">Choose a light or dark interface and a primary accent color. Changes apply across your portal.</p>
+    <p class="dr-hint" style="margin: -0.25rem 0 1rem">
+      To change your display name, clinic, or phone, use
+      <a href="{{ url_for('core.doctor_profile') }}" class="dr-link">Edit profile</a>
+      from your account menu.
+    </p>
+
+    <form method="post" class="dr-settings-form dr-panel">
+      <fieldset class="dr-fieldset">
+        <legend>Theme</legend>
+        <div class="dr-radio-row">
+          <label class="dr-radio">
+            <input type="radio" name="theme_mode" value="light" {% if theme.mode == 'light' %}checked{% endif %} />
+            <span>Light</span>
+          </label>
+          <label class="dr-radio">
+            <input type="radio" name="theme_mode" value="dark" {% if theme.mode == 'dark' %}checked{% endif %} />
+            <span>Dark</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="dr-fieldset">
+        <legend>Accent color</legend>
+        <p class="dr-hint">Used for buttons, links, and highlights.</p>
+        <div class="dr-color-row">
+          <input type="color" name="theme_accent" value="{{ theme.accent }}" class="dr-color-input" id="theme_accent" />
+          <label for="theme_accent" class="dr-color-label">{{ theme.accent }}</label>
+        </div>
+        <div class="dr-presets">
+          <span class="dr-hint">Presets:</span>
+          <button type="button" class="dr-preset" data-hex="#3b82f6" style="background:#3b82f6" aria-label="Blue"></button>
+          <button type="button" class="dr-preset" data-hex="#0d9488" style="background:#0d9488" aria-label="Teal"></button>
+          <button type="button" class="dr-preset" data-hex="#6366f1" style="background:#6366f1" aria-label="Indigo"></button>
+          <button type="button" class="dr-preset" data-hex="#db2777" style="background:#db2777" aria-label="Pink"></button>
+        </div>
+      </fieldset>
+
+      <fieldset class="dr-fieldset">
+        <legend>Professional title</legend>
+        <label class="dr-label-full">
+          Specialty (shown in header)
+          <input type="text" name="doctor_specialty" value="{{ doctor_specialty }}" placeholder="e.g. Cardiologist" class="dr-input" maxlength="120" />
+        </label>
+      </fieldset>
+
+      <div class="dr-form-actions">
+        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save changes</button>
+        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
+      </div>
+    </form>
+  </div>
+  <script>
+    document.querySelectorAll(".dr-preset").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var hex = btn.getAttribute("data-hex");
+        var input = document.getElementById("theme_accent");
+        if (input && hex) {
+          input.value = hex;
+          var lab = document.querySelector(".dr-color-label");
+          if (lab) lab.textContent = hex;
+        }
+      });
+    });
+    var colorInput = document.getElementById("theme_accent");
+    if (colorInput) {
+      colorInput.addEventListener("input", function () {
+        var lab = document.querySelector(".dr-color-label");
+        if (lab) lab.textContent = colorInput.value;
+      });
+    }
+  </script>
+{% endblock %}

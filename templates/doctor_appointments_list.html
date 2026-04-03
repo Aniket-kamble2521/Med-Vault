@@ -1,0 +1,34 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">All appointments</h1>
+    <p class="dr-page-lead">Up to 200 recent visits, newest first.</p>
+    {% if items %}
+      <section class="dr-panel">
+        <ul class="dr-appt-list" style="margin: 0">
+          {% for it in items %}
+            <li class="dr-appt-row">
+              <div class="dr-appt-info">
+                <strong>{{ it.name }}</strong>
+                <span>{{ it.sub }}</span>
+              </div>
+              <div class="dr-appt-right">
+                <span class="dr-appt-time" style="font-size: 0.8rem">{{ it.when }}</span>
+                {% if it.status == "waiting" %}
+                  <span class="dr-badge dr-badge--wait">waiting</span>
+                {% elif it.status == "in_progress" %}
+                  <span class="dr-badge dr-badge--progress">in progress</span>
+                {% else %}
+                  <span class="dr-badge dr-badge--sched">scheduled</span>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% else %}
+      <p class="dr-page-lead">No appointments yet. Schedule one from the dashboard.</p>
+    {% endif %}
+  </div>
+{% endblock %}

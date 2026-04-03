@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "MedVault — Patient Portal" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='doctor.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='patient_dashboard.css') }}" />
+  </head>
+  <body
+    class="dr-portal"
+    data-portal="patient"
+    data-theme="{{ theme.mode }}"
+    style="--accent: {{ theme.accent }}; --accent-rgb: {{ theme.accent_rgb }};"
+  >
+    <header class="dr-topbar">
+      <div class="dr-topbar-inner">
+        <a href="{{ url_for('core.dashboard') }}" class="dr-brand">
+          <span class="dr-brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </span>
+          <span class="dr-brand-text">
+            <span class="dr-brand-name">MedVault</span>
+            <span class="dr-brand-sub">{{ theme.portal_label }}</span>
+          </span>
+        </a>
+        <div class="dr-topbar-actions">
+          <a href="{{ url_for('core.dashboard') }}#pd-banners" class="dr-p-bell" title="Updates" aria-label="View updates">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span class="dr-p-bell-dot" aria-hidden="true"></span>
+          </a>
+          <form action="{{ url_for('auth.logout') }}" method="post" class="dr-p-logout">
+            <button type="submit" class="dr-p-logout-btn" title="Sign out" aria-label="Sign out">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </form>
+          <div class="dr-profile-wrap">
+            <button
+              type="button"
+              class="dr-profile-trigger"
+              id="dr-profile-btn"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-label="Open account menu"
+            >
+              <span class="dr-avatar">{{ theme.initials }}</span>
+              <span class="dr-user-meta">
+                <span class="dr-user-name">{{ theme.display_name }}</span>
+                <span class="dr-user-role">
+                  {% if theme.patient_id_str %}Patient ID: {{ theme.patient_id_str }}{% else %}{{ theme.specialty }}{% endif %}
+                </span>
+              </span>
+              <svg class="dr-profile-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <div class="dr-profile-menu" id="dr-profile-menu" hidden role="menu">
+              <div class="dr-profile-menu-head">
+                <span class="dr-avatar dr-avatar--menu">{{ theme.initials }}</span>
+                <div class="dr-profile-menu-ident">
+                  <strong class="dr-profile-menu-name">{{ theme.display_name }}</strong>
+                  <span class="dr-profile-menu-sub">@{{ theme.username }}</span>
+                  {% if theme.patient_id_str %}
+                    <span class="dr-profile-menu-sub">Patient ID: {{ theme.patient_id_str }}</span>
+                  {% else %}
+                    <span class="dr-profile-menu-sub">{{ theme.specialty }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="dr-profile-menu-divider" role="presentation"></div>
+              <a href="{{ url_for('core.dashboard') }}#pd-profile" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.8 2.3h.4c.4 0 .8.3.9.7l.7 2.7a3 3 0 001 1.6l2.6 2.2a5 5 0 001.6 3.7v4.9a2 2 0 01-2 2H14a2 2 0 01-2-2v-1.5"/></svg>
+                </span>
+                <span>Medical profile</span>
+              </a>
+              <a href="{{ url_for('core.dashboard') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                </span>
+                <span>Dashboard</span>
+              </a>
+              <a href="{{ url_for('core.settings') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </span>
+                <span>Appearance &amp; theme</span>
+              </a>
+              <a href="{{ url_for('modules.roadmap') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12M8 10l4-4 4 4"/><circle cx="12" cy="12" r="10"/></svg>
+                </span>
+                <span>Health modules</span>
+              </a>
+              <a href="{{ url_for('core.onboarding') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                </span>
+                <span>Help &amp; guide</span>
+              </a>
+              <div class="dr-profile-menu-divider" role="presentation"></div>
+              <form action="{{ url_for('auth.logout') }}" method="post" class="dr-profile-menu-logout">
+                <button type="submit" class="dr-profile-menu-item dr-profile-menu-item--danger" role="menuitem">
+                  <span class="dr-profile-menu-ico" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                  </span>
+                  <span>Sign out</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="dr-main">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="dr-flash-wrap">
+            {% for message in messages %}
+              <div class="dr-flash">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="{{ url_for('static', filename='doctor_profile_menu.js') }}"></script>
+  </body>
+</html>
