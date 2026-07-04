@@ -17,6 +17,11 @@ def create_app() -> Flask:
         static_url_path="/static",
     )
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+    
+    # Overwrite instance path on Vercel to avoid Read-Only Filesystem errors
+    if os.environ.get("VERCEL", "0") == "1":
+        app.instance_path = os.path.join("/tmp", "instance")
+        
     app.config["DATABASE"] = os.path.join(app.instance_path, "app.db")
     app.config["SCHEMA_PATH"] = os.path.join(project_root, "schema.sql")
     app.config["UPLOAD_FOLDER"] = os.path.join(app.instance_path, "uploads")
@@ -27,6 +32,7 @@ def create_app() -> Flask:
     os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     os.makedirs(app.config["QR_FOLDER"], exist_ok=True)
+
 
     login_manager.login_view = "auth.login"
     login_manager.init_app(app)
