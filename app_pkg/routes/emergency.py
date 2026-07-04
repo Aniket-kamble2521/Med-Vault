@@ -1,10 +1,11 @@
 import os
 import time
 from datetime import datetime, timezone
+import io
 
 import qrcode
 from qrcode.image.svg import SvgPathImage
-from flask import Blueprint, current_app, jsonify, render_template, send_from_directory, url_for
+from flask import Blueprint, current_app, jsonify, render_template, send_from_directory, url_for, abort, Response
 from flask_login import current_user, login_required
 
 from app_pkg.db import get_db
@@ -23,9 +24,9 @@ def cleanup_expired_tokens() -> None:
     db.commit()
 
 
-@emergency_bp.post("/generate_emergency_qr")
+@emergency_bp.post("/emergency/token")
 @login_required
-def generate_emergency_qr():
+def generate_token():
     try:
         cleanup_expired_tokens()
         token = generate_secret_token()
@@ -43,18 +44,10 @@ def generate_emergency_qr():
         )
         db.commit()
         
-        # Get external URL for cross-device access
-        import socket
-        hostname = socket.gethostbyname(socket.gethostname())
-        emergency_url = f"http://{hostname}:5000{url_for('emergency.emergency_view', token=token)}"
+        # Get external URL for cross-device access using flask request context
+        emergency_url = url_for('emergency.emergency_view', token=token, _external=True)
         
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(emergency_url)
-        qr.make(fit=True)
-        img = qr.make_image(image_factory=SvgPathImage)
-        img.save(os.path.join(current_app.config["QR_FOLDER"], f"{token}.svg"))
-        
-        print(f"QR generated successfully: {emergency_url}")
+        print(f"QR generated successfully for: {emergency_url}")
         
         return jsonify(
             {
@@ -73,7 +66,23 @@ def generate_emergency_qr():
 
 @emergency_bp.get("/qr/<token>.svg")
 def qr_image(token: str):
-    return send_from_directory(current_app.config["QR_FOLDER"], f"{token}.svg")
+    db = get_db()
+    token_row = db.execute("SELECT * FROM emergency_tokens WHERE token = ?", (token,)).fetchone()
+    if not token_row:
+        abort(404)
+        
+    emergency_url = url_for('emergency.emergency_view', token=token, _external=True)
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(emergency_url)
+    qr.make(fit=True)
+    img = qr.make_image(image_factory=SvgPathImage)
+    
+    import io
+    stream = io.BytesIO()
+    img.save(stream)
+    svg_data = stream.getvalue()
+    
+    return Response(svg_data, mimetype="image/svg+xml")
 
 
 @emergency_bp.get("/emergency-test")

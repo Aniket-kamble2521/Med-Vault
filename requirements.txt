@@ -3,3 +3,5 @@ qrcode[pil]
 Flask-Login
 bcrypt
 cryptography
+psycopg2-binary
+requests

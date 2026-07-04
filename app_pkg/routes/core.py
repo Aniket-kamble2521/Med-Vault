@@ -14,6 +14,12 @@ from app_pkg.services.files import ai_categorize_medical_file
 from app_pkg.services.ocr import extract_text_with_tesseract
 from app_pkg.services.security import decrypt_text, encrypt_text
 from app_pkg.services.summary import generate_medical_summary
+from app_pkg.services.supabase_storage import (
+    is_supabase_configured,
+    upload_file_to_supabase,
+    download_file_from_supabase,
+    delete_file_from_supabase,
+)
 
 core_bp = Blueprint("core", __name__)
 
@@ -1290,7 +1296,11 @@ def upload():
 
     original = secure_filename(f.filename)
     stored_name = f"{current_user.id}_{now_ts()}_{secrets.token_hex(8)}_{original}"
-    saved_path = os.path.join(current_app.config["UPLOAD_FOLDER"], stored_name)
+    
+    # Use writeable /tmp/uploads folder to store file temporarily for OCR
+    temp_dir = os.path.join("/tmp", "uploads")
+    os.makedirs(temp_dir, exist_ok=True)
+    saved_path = os.path.join(temp_dir, stored_name)
     f.save(saved_path)
     
     # Extract text from image files for AI categorization
@@ -1305,6 +1315,34 @@ def upload():
     doc_category = (request.form.get("doc_category") or "").strip()
     doc_source = (request.form.get("doc_source") or "").strip()
 
+    # Upload to Supabase Storage if configured, else keep it in local uploads folder
+    if is_supabase_configured():
+        try:
+            with open(saved_path, "rb") as file_bytes:
+                content_type = f.content_type or "application/octet-stream"
+                upload_file_to_supabase(file_bytes.read(), stored_name, content_type)
+            stored_db_path = stored_name
+        except Exception as e:
+            flash(f"Failed to upload to Supabase: {str(e)}")
+            try:
+                os.remove(saved_path)
+            except OSError:
+                pass
+            return _redirect_home()
+        # Clean up temp file
+        try:
+            os.remove(saved_path)
+        except OSError:
+            pass
+    else:
+        # Fallback to local UPLOAD_FOLDER
+        final_dest = os.path.join(current_app.config["UPLOAD_FOLDER"], stored_name)
+        os.makedirs(os.path.dirname(final_dest), exist_ok=True)
+        if saved_path != final_dest:
+            import shutil
+            shutil.move(saved_path, final_dest)
+        stored_db_path = final_dest
+
     db = get_db()
     db.execute(
         """
@@ -1314,7 +1352,7 @@ def upload():
         (
             current_user.id,
             original,
-            saved_path,
+            stored_db_path,
             category,
             confidence,
             doc_category,
@@ -1347,9 +1385,34 @@ def download_file(file_id: int):
     ).fetchone()
     if not row:
         abort(404)
+        
+    stored_path = row["stored_path"]
+    
+    if is_supabase_configured():
+        from flask import Response
+        try:
+            stored_name = os.path.basename(stored_path)
+            file_data = download_file_from_supabase(stored_name)
+            return Response(
+                file_data,
+                mimetype="application/octet-stream",
+                headers={
+                    "Content-Disposition": f"attachment; filename={row['filename']}"
+                }
+            )
+        except Exception as e:
+            abort(500, description=f"Supabase download failed: {str(e)}")
+            
+    # Fallback to local files
+    if not os.path.isabs(stored_path):
+        stored_path = os.path.join(current_app.config["UPLOAD_FOLDER"], stored_path)
+        
+    directory = os.path.dirname(stored_path)
+    filename = os.path.basename(stored_path)
+    
     return send_from_directory(
-        current_app.config["UPLOAD_FOLDER"],
-        row["stored_path"],
+        directory,
+        filename,
         as_attachment=True,
         download_name=row["filename"],
     )
@@ -1365,12 +1428,27 @@ def delete_file(file_id: int):
     ).fetchone()
     if not row:
         abort(404)
+        
+    stored_path = row["stored_path"]
+    
     db.execute("DELETE FROM files WHERE id = ? AND user_id = ?", (file_id, current_user.id))
     db.commit()
-    try:
-        os.remove(os.path.join(current_app.config["UPLOAD_FOLDER"], row["stored_path"]))
-    except OSError:
-        pass
+    
+    if is_supabase_configured():
+        stored_name = os.path.basename(stored_path)
+        try:
+            delete_file_from_supabase(stored_name)
+        except Exception as e:
+            print(f"Failed to delete {stored_name} from Supabase: {e}")
+    else:
+        if not os.path.isabs(stored_path):
+            stored_path = os.path.join(current_app.config["UPLOAD_FOLDER"], stored_path)
+        try:
+            os.remove(stored_path)
+        except OSError:
+            pass
+            
     flash("File deleted.")
     return _redirect_home()
+
 
