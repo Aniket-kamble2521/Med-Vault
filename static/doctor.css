@@ -154,19 +154,38 @@
   margin-left: 0.1rem;
 }
 
+@keyframes profileMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .dr-profile-menu {
   position: absolute;
   right: 0;
   top: calc(100% + 0.4rem);
-  width: min(19.5rem, calc(100vw - 2rem));
-  max-height: min(85vh, 26rem);
+  width: min(20.5rem, calc(100vw - 2rem));
+  max-height: min(85vh, 32rem);
   overflow-y: auto;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-hover);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   z-index: 120;
   padding: 0.35rem 0;
+  transform-origin: top right;
+}
+
+.dr-profile-menu:not([hidden]) {
+  display: block;
+  animation: profileMenuFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dr-profile-menu-head {
@@ -1402,3 +1421,112 @@ a.dr-btn-gradient--link {
   color: var(--text-muted);
   font-size: 0.88rem;
 }
+
+/* Floating Action Button (FAB) styles for Emergency QR Scan */
+.floating-scan-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: white;
+  border-radius: 50px;
+  padding: 0.85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+  z-index: 999;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: floating-bounce 3s infinite ease-in-out;
+}
+
+.floating-scan-btn:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 15px 30px rgba(239, 68, 68, 0.5);
+  filter: brightness(1.1);
+}
+
+.floating-scan-icon {
+  font-size: 1.25rem;
+  animation: alert-pulse 1.5s infinite;
+}
+
+.floating-scan-text {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.3s ease, opacity 0.3s ease;
+}
+
+.floating-scan-btn:hover .floating-scan-text {
+  max-width: 200px;
+  opacity: 1;
+}
+
+/* Common Animations */
+@keyframes floating-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes alert-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* Redesign & Glassmorphism styles */
+.dr-panel {
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(209, 213, 219, 0.3) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+.dr-portal[data-theme="dark"] .dr-panel {
+  background: rgba(26, 26, 36, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Animations */
+.animate-pulse {
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 12px 4px rgba(139, 92, 246, 0.3); }
+}
+
+/* Slide-out drawer animations and styles */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.fadeInUp {
+  animation: fadeInUpAnim 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUpAnim {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+

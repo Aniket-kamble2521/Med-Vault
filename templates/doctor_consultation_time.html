@@ -1,0 +1,104 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell">
+  <div>
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Consultation Time Reports</h1>
+    <p class="dr-hint" style="margin: 0.2rem 0 2rem;">Analysis of consultation durations and clinical time spent.</p>
+  </div>
+
+  <!-- KPI Grid -->
+  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <!-- Avg Duration -->
+    <div class="dr-panel" style="padding: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 0.25rem;">Average Duration</div>
+      <h3 style="margin: 0; font-size: 1.8rem; color: var(--accent); font-weight: 800;">{{ avg_duration }} <span style="font-size: 1rem; font-weight: normal;">mins</span></h3>
+    </div>
+    <!-- Longest -->
+    <div class="dr-panel" style="padding: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 0.25rem;">Longest Consult</div>
+      <h3 style="margin: 0; font-size: 1.8rem; color: var(--text); font-weight: 800;">{{ max_duration }} <span style="font-size: 1rem; font-weight: normal;">mins</span></h3>
+    </div>
+    <!-- Shortest -->
+    <div class="dr-panel" style="padding: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 0.25rem;">Shortest Consult</div>
+      <h3 style="margin: 0; font-size: 1.8rem; color: var(--text); font-weight: 800;">{{ min_duration }} <span style="font-size: 1rem; font-weight: normal;">mins</span></h3>
+    </div>
+    <!-- Time Spent Today -->
+    <div class="dr-panel" style="padding: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 0.25rem;">Time Spent Today</div>
+      <h3 style="margin: 0; font-size: 1.8rem; color: var(--text); font-weight: 800;">{{ today_time }} <span style="font-size: 1rem; font-weight: normal;">mins</span></h3>
+    </div>
+    <!-- Weekly Avg -->
+    <div class="dr-panel" style="padding: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 0.25rem;">Weekly Daily Avg</div>
+      <h3 style="margin: 0; font-size: 1.8rem; color: var(--text); font-weight: 800;">{{ weekly_avg }} <span style="font-size: 1rem; font-weight: normal;">mins</span></h3>
+    </div>
+  </section>
+
+  <!-- Trend Chart -->
+  <div class="dr-panel dr-chart-panel" style="margin-bottom: 2rem; padding: 1.5rem;">
+    <h2 class="dr-side-title" style="margin-top: 0;">Consultation Duration Trends</h2>
+    <p class="dr-hint" style="margin-bottom: 1.5rem;">Average consultation duration per day over the last 7 days.</p>
+    <div style="height: 300px; position: relative; width: 100%;">
+      <canvas id="consult-time-chart" style="height: 100%; width: 100%;"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    const el = document.getElementById("consult-time-chart");
+    if (!el) return;
+
+    const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#3b82f6";
+    const grid = getComputedStyle(document.body).getPropertyValue("--border").trim() || "#e2e8f0";
+    const text = getComputedStyle(document.body).getPropertyValue("--text-muted").trim() || "#64748b";
+
+    const labels = {{ chart_labels | tojson }};
+    const data = {{ chart_data | tojson }};
+
+    new Chart(el, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Avg Duration (minutes)",
+          data: data,
+          borderColor: accent,
+          backgroundColor: accent + "18",
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 4,
+          pointBackgroundColor: accent
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { 
+            ticks: { color: text }, 
+            grid: { color: grid } 
+          },
+          y: { 
+            beginAtZero: true, 
+            ticks: { color: text }, 
+            grid: { color: grid },
+            title: {
+              display: true,
+              text: "Minutes",
+              color: text
+            }
+          }
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}

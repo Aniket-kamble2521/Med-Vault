@@ -1,0 +1,120 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <h1 class="pd-page-title">Health Score Analytics</h1>
+    <p class="pd-page-lead">Detailed breakdown of the health indicators, lifestyle habits, and suggestions computed from your logs.</p>
+    
+    <div class="pd-main-grid" style="grid-template-columns: 320px 1fr;">
+      
+      <!-- Left Side: Circular score circle & history -->
+      <div class="pd-split-side" style="gap: 1.5rem;">
+        <div class="health-score-container" style="margin: 0; padding: 2rem 1rem;">
+          <div class="circle-progress">
+            <svg viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="85" stroke="#e5e7eb" stroke-width="12" fill="none"/>
+              <circle cx="100" cy="100" r="85" stroke="var(--accent)" stroke-width="12" fill="none"
+                      stroke-dasharray="534" stroke-dashoffset="{{ 534 - (534 * score) / 100 }}"
+                      stroke-linecap="round" transform="rotate(-90 100 100)"/>
+            </svg>
+            <div class="circle-progress-text">
+              <span class="score-num" style="font-size: 3rem;">{{ score }}</span>
+              <span class="score-label" style="font-size: 0.85rem; text-transform: uppercase; tracking-letter: 0.05em;">{{ category }}</span>
+            </div>
+          </div>
+          <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 1.5rem; line-height: 1.4;">
+            Your health score is a dynamic calculation derived from your profile and vital logs.
+          </p>
+        </div>
+        
+        <div class="pd-panel">
+          <h3 class="dr-side-title" style="margin-bottom: 0.75rem;">Score History</h3>
+          <div class="health-history-list">
+            {% for h in history %}
+              <div class="health-history-item">
+                <span class="health-history-date">{{ h.date }}</span>
+                <span class="health-history-score">{{ h.score }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Side: Details & suggestions -->
+      <div class="pd-split-main" style="gap: 1.5rem;">
+        
+        <!-- Factors affecting the score -->
+        <section class="pd-panel">
+          <h2 class="dr-side-title" style="font-size: 1.15rem; margin-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem;">Factors Affecting Your Score</h2>
+          <div class="factors-grid">
+            {% for factor in factors %}
+              <div class="factor-card {% if factor.ok %}factor-ok{% else %}factor-alert{% endif %}">
+                <div class="factor-icon-wrap">
+                  {% if factor.name == 'Blood Pressure' %}🩺
+                  {% elif factor.name == 'Blood Sugar' %}🩸
+                  {% elif factor.name == 'BMI' %}⚖️
+                  {% elif factor.name == 'Heart Rate' %}❤️
+                  {% elif factor.name == 'Sleep' %}🌙
+                  {% elif factor.name == 'Exercise' %}🏃
+                  {% elif factor.name == 'Water Intake' %}💧
+                  {% elif factor.name == 'Medication Adherence' %}💊
+                  {% endif %}
+                </div>
+                <div class="factor-info">
+                  <div class="factor-name">{{ factor.name }}</div>
+                  <div class="factor-value">{{ factor.value }}</div>
+                </div>
+                <span class="factor-status-badge">{{ factor.status }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+        
+        <!-- Suggestions, improvements & attentions -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          
+          <section class="pd-panel" style="background: #f0fdf4; border-color: #bbf7d0;">
+            <h3 style="color: #166534; font-size: 1rem; font-weight: 700; margin: 0 0 0.75rem 0;">🎉 Recent Improvements</h3>
+            {% if improvements %}
+              <ul style="padding-left: 1.25rem; margin: 0; color: #166534; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                {% for imp in improvements %}
+                  <li>{{ imp }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p style="color: #166534; font-size: 0.9rem; margin: 0;">Log regular reports and habits to see improvements.</p>
+            {% endif %}
+          </section>
+          
+          <section class="pd-panel" style="background: #fef2f2; border-color: #fecaca;">
+            <h3 style="color: #991b1b; font-size: 1rem; font-weight: 700; margin: 0 0 0.75rem 0;">⚠️ Areas Needing Attention</h3>
+            {% if attention %}
+              <ul style="padding-left: 1.25rem; margin: 0; color: #991b1b; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                {% for att in attention %}
+                  <li>{{ att }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p style="color: #166534; font-size: 0.9rem; margin: 0;">Excellent! No immediate warning signals found.</p>
+            {% endif %}
+          </section>
+          
+        </div>
+        
+        <section class="pd-panel">
+          <h2 class="dr-side-title" style="font-size: 1.15rem; margin-bottom: 0.75rem;">Personalized Health Improvement Suggestions</h2>
+          <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            {% for sug in suggestions %}
+              <div style="padding: 1rem; border-left: 4px solid var(--accent); background: #f8fafc; border-radius: 0 8px 8px 0; font-size: 0.95rem; line-height: 1.5; color: var(--text);">
+                {{ sug }}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+        
+      </div>
+      
+    </div>
+  </div>
+{% endblock %}

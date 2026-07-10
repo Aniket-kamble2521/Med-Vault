@@ -1,0 +1,493 @@
+{% extends "base_patient.html" %}
+{% block content %}
+<div class="pd-wrap" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem;">
+  <a href="{{ url_for('core.dashboard') }}" class="pd-back-link" style="text-decoration: none; color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to Dashboard
+  </a>
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem;">
+    <div>
+      <h1 class="pd-page-title" style="margin: 0 0 0.5rem 0; font-size: 2.25rem; font-weight: 800; color: var(--text); tracking: -0.025em;">Medical Documents Center</h1>
+      <p class="pd-page-lead" style="margin: 0; color: var(--text-muted); font-size: 1.05rem;">Upload, organize, preview, and generate AI summaries of your clinical records.</p>
+    </div>
+    <button class="pd-btn-primary" onclick="showUploadModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; transition: transform 0.2s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      Upload Document
+    </button>
+  </div>
+  
+  <!-- Search & Filter Board -->
+  <div style="background: var(--surface); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);">
+    <form method="get" action="{{ url_for('core.medical_documents') }}" id="filterForm" style="margin: 0; display: flex; flex-direction: column; gap: 1.25rem;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; flex-wrap: wrap;">
+        <!-- Search -->
+        <div style="position: relative; flex-grow: 1;">
+          <input class="pd-input" type="search" name="q" value="{{ search or '' }}" placeholder="Search documents by name or provider..." style="width: 100%; max-width: none; padding-left: 2.5rem; height: 48px; border-radius: 12px;" />
+          <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </span>
+        </div>
+        
+        <!-- Date Range Filter -->
+        <select name="date_range" class="pd-input" onchange="this.form.submit()" style="height: 48px; border-radius: 12px; background: white; color: var(--text);">
+          <option value="" {% if not date_filter %}selected{% endif %}>All Time</option>
+          <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Uploaded Today</option>
+          <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Last 7 Days</option>
+          <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last 30 Days</option>
+          <option value="year" {% if date_filter == 'year' %}selected{% endif %}>Last Year</option>
+        </select>
+        
+        <!-- Sort Control -->
+        <select name="sort_by" class="pd-input" onchange="this.form.submit()" style="height: 48px; border-radius: 12px; background: white; color: var(--text);">
+          <option value="newest" {% if sort_by == 'newest' or not sort_by %}selected{% endif %}>Newest First</option>
+          <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
+        </select>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div>
+        <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: block; margin-bottom: 0.75rem;">Categories</span>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <input type="hidden" name="category" id="selectedCategory" value="{{ selected_category or '' }}" />
+          <button type="button" class="cat-tab-btn {% if not selected_category %}active{% endif %}" onclick="selectCategory('')">
+            All Documents
+          </button>
+          {% for cat in categories %}
+            <button type="button" class="cat-tab-btn {% if selected_category == cat.category %}active{% endif %}" onclick="selectCategory('{{ cat.category }}')">
+              {{ cat.category }} <span class="cat-count-badge">{{ cat.c }}</span>
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Document Vault Grid -->
+  {% if files %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+      {% for f in files %}
+        <div class="pd-report" style="display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); transition: all 0.2s; position: relative;">
+          
+          <!-- Top Row: Icon + Header -->
+          <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; width: 100%;">
+            <div style="background: rgba(59, 130, 246, 0.08); color: var(--accent); padding: 0.75rem; border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+            </div>
+            <div style="flex-grow: 1; min-width: 0;">
+              <h4 style="margin: 0; color: var(--text); font-size: 1.05rem; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ f.filename }}">{{ f.filename }}</h4>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: flex; gap: 0.5rem; align-items: center;">
+                <span>{{ f.uploaded_label }}</span>
+                <span>•</span>
+                <span>{{ f.size_lbl }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Category & Upload details -->
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.75rem; margin-bottom: 1.5rem; width: 100%;">
+            <span style="background: rgba(var(--accent-rgb), 0.08); color: var(--accent); padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 600;">
+              {{ f.category }}
+            </span>
+            <span style="background: #f3f4f6; color: #4b5563; padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 500;">
+              Type: {{ f.file_type }}
+            </span>
+            <span style="background: #fdf2f8; color: #db2777; padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 600;">
+              By: {{ f.uploaded_by }}
+            </span>
+            {% if f.doc_source %}
+              <span style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.6rem; border-radius: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">
+                Source: {{ f.doc_source }}
+              </span>
+            {% endif %}
+          </div>
+          
+          <!-- Actions Footer -->
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.5rem; margin-top: auto; border-top: 1px solid var(--border); padding-top: 1rem; width: 100%;">
+            <button onclick="previewFile({{ f.id }})" class="pd-btn-outline pd-btn-sm" style="font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.5rem; border-radius: 8px;">
+              👁️ View Record
+            </button>
+            <button onclick="showSummaryModal({{ f.id }})" class="pd-btn-outline pd-btn-sm" style="font-weight: 600; color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3); background: rgba(139, 92, 246, 0.04); display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.5rem; border-radius: 8px;">
+              🤖 AI Summary
+            </button>
+          </div>
+          
+          <div style="display: flex; gap: 0.5rem; width: 100%; margin-top: 0.5rem;">
+            <button onclick="renameFileModal({{ f.id }}, '{{ f.filename }}')" class="pd-btn-link" style="font-size: 0.8rem; color: var(--text-muted); text-decoration: none;">Rename</button>
+            <span style="color: var(--border);">|</span>
+            <a href="{{ url_for('core.download_file', file_id=f.id) }}" class="pd-btn-link" style="font-size: 0.8rem; color: var(--text-muted); text-decoration: none;">Download</a>
+            <span style="color: var(--border);">|</span>
+            <button onclick="deleteFile({{ f.id }}, '{{ f.filename }}')" class="pd-btn-link" style="font-size: 0.8rem; color: #ef4444; border: none; background: none; padding: 0; cursor: pointer;">Delete</button>
+          </div>
+          
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <!-- Empty State -->
+    <div class="pd-empty-state" style="background: var(--surface); border-radius: 24px; padding: 4rem 2rem; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); text-align: center;">
+      <div style="font-size: 4rem; margin-bottom: 1.5rem;">📂</div>
+      <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem;">No Records Found</h3>
+      <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 1.5rem auto;">We couldn't find any medical records matching your search query or filters. Upload your clinical reports to get started.</p>
+      <button class="pd-btn-primary" onclick="showUploadModal()">Upload Document</button>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="pd-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem;">
+  <div class="pd-modal-content" style="background: white; border-radius: 24px; width: 100%; max-width: 520px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); border: 1px solid var(--border); overflow: hidden; animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    <div class="pd-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text);">Upload Health Document</h3>
+      <button type="button" class="pd-modal-close" onclick="hideUploadModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+    </div>
+    <div class="pd-modal-body" style="padding: 2rem;">
+      <form method="post" action="{{ url_for('core.upload') }}" enctype="multipart/form-data" id="uploadForm">
+        <!-- Drag & Drop Zone -->
+        <div class="pd-upload-area" id="uploadArea" style="border: 2px dashed var(--border); border-radius: 16px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('fileInput').click()">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📤</div>
+          <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text);">Drag and drop your files here</h4>
+          <p style="margin: 0 0 1.25rem 0; color: var(--text-muted); font-size: 0.85rem;">PDF, JPG, PNG up to 8MB are supported.</p>
+          <input type="file" name="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" required style="display: none;" />
+          <button type="button" class="pd-btn-outline" style="pointer-events: none; border-radius: 8px;">Choose File</button>
+        </div>
+        
+        <div class="pd-upload-details" id="uploadDetails" style="display: none; margin-top: 1.5rem;">
+          <div style="background: #f8fafc; border: 1px solid var(--border); padding: 1rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <span id="fileName" style="font-weight: 600; font-size: 0.9rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px;"></span>
+            <button type="button" onclick="clearFile()" style="background: none; border: none; color: #ef4444; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Remove</button>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+              <label style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Category</label>
+              <select name="category" class="pd-input" style="width: 100%; border-radius: 10px; background: white; color: var(--text);">
+                <option value="Auto-Detect">Auto-Detect Category (AI)</option>
+                <option value="Prescriptions">Prescriptions</option>
+                <option value="Blood Test Reports">Blood Test Reports</option>
+                <option value="X-Ray">X-Ray</option>
+                <option value="MRI">MRI</option>
+                <option value="CT Scan">CT Scan</option>
+                <option value="ECG">ECG</option>
+                <option value="Ultrasound">Ultrasound</option>
+                <option value="Vaccination Records">Vaccination Records</option>
+                <option value="Discharge Summary">Discharge Summary</option>
+                <option value="Medical Certificates">Medical Certificates</option>
+                <option value="Insurance Documents">Insurance Documents</option>
+                <option value="Other Medical Documents">Other Medical Documents</option>
+              </select>
+            </div>
+            
+            <div>
+              <label style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Hospital / Provider Name</label>
+              <input class="pd-input" type="text" name="doc_source" placeholder="e.g. City General Hospital, Dr. Smith" style="width: 100%; border-radius: 10px;" />
+            </div>
+          </div>
+          
+          <button type="submit" class="pd-btn-primary" style="width: 100%; padding: 0.85rem; border-radius: 12px; font-weight: 700; cursor: pointer; border: none;">Upload &amp; Analyze</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Modal -->
+<div id="renameModal" class="pd-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem;">
+  <div class="pd-modal-content" style="background: white; border-radius: 24px; width: 100%; max-width: 480px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); border: 1px solid var(--border); overflow: hidden;">
+    <div class="pd-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text);">Rename File</h3>
+      <button type="button" class="pd-modal-close" onclick="hideRenameModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+    </div>
+    <div class="pd-modal-body" style="padding: 2rem;">
+      <form id="renameForm" onsubmit="submitRename(event)">
+        <input type="hidden" id="renameFileId" />
+        <div style="margin-bottom: 1.5rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">New Filename</label>
+          <input class="pd-input" type="text" id="renameInput" required style="width: 100%; border-radius: 10px;" />
+        </div>
+        <button type="submit" class="pd-btn-primary" style="width: 100%; padding: 0.85rem; border-radius: 12px; font-weight: 700; border: none;">Save Changes</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="pd-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem;">
+  <div class="pd-modal-content" style="background: white; border-radius: 24px; width: 100%; max-width: 960px; height: 85vh; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column;">
+    <div class="pd-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text);" id="previewTitle">Document Preview</h3>
+      <button type="button" class="pd-modal-close" onclick="hidePreviewModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+    </div>
+    <div class="pd-modal-body" style="flex-grow: 1; padding: 0; background: #525659; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+      <iframe id="previewIframe" style="width: 100%; height: 100%; border: none;" src=""></iframe>
+      <img id="previewImg" style="max-width: 100%; max-height: 100%; object-fit: contain; display: none;" src="" />
+    </div>
+  </div>
+</div>
+
+<!-- AI Summary Modal -->
+<div id="summaryModal" class="pd-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem;">
+  <div class="pd-modal-content" style="background: white; border-radius: 24px; width: 100%; max-width: 640px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column;">
+    <div class="pd-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+        <span>🤖</span> AI Document Summary
+      </h3>
+      <button type="button" class="pd-modal-close" onclick="hideSummaryModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+    </div>
+    <div class="pd-modal-body" style="padding: 2rem; overflow-y: auto; max-height: 60vh;">
+      <div id="summaryContent" style="font-size: 0.95rem; line-height: 1.6; color: var(--text);">
+        Analyzing document content...
+      </div>
+      
+      <!-- Warning Disclaimer -->
+      <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 1rem; display: flex; gap: 0.75rem; align-items: flex-start; margin-top: 1.5rem;">
+        <span style="font-size: 1.25rem; line-height: 1;">⚠️</span>
+        <div style="font-size: 0.75rem; color: #b45309; line-height: 1.4;">
+          <strong>Medical Disclaimer</strong>: This AI-generated summary is for informational purposes only. It is not professional medical advice, diagnosis, or treatment. Always discuss your medical findings and reports with your physician or qualified healthcare provider.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Custom document styles */
+  .cat-tab-btn {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  [data-theme="dark"] .cat-tab-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+  .cat-tab-btn:hover {
+    background: #e5e7eb;
+  }
+  [data-theme="dark"] .cat-tab-btn:hover {
+    background: #334155;
+  }
+  .cat-tab-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .cat-count-badge {
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+  }
+  .cat-tab-btn.active .cat-count-badge {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  [data-theme="dark"] .pd-modal-content {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+  [data-theme="dark"] .pd-modal-header {
+    border-bottom-color: #334155 !important;
+  }
+  [data-theme="dark"] .pd-upload-area {
+    border-color: #334155 !important;
+  }
+  .pd-upload-area-dragover {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: var(--accent) !important;
+  }
+  @keyframes modalPop {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+
+<script>
+  function showUploadModal() {
+    document.getElementById('uploadModal').style.display = 'flex';
+  }
+  
+  function hideUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+    clearFile();
+  }
+  
+  function clearFile() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('uploadDetails').style.display = 'none';
+    document.getElementById('uploadArea').style.display = 'block';
+  }
+  
+  function deleteFile(fileId, fileName) {
+    if (confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `/files/${fileId}/delete`;
+      document.body.appendChild(form);
+      form.submit();
+    }
+  }
+  
+  // Drag and drop handlers
+  const uploadArea = document.getElementById('uploadArea');
+  if (uploadArea) {
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      this.classList.add('pd-upload-area-dragover');
+    });
+    uploadArea.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      this.classList.remove('pd-upload-area-dragover');
+    });
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('pd-upload-area-dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        document.getElementById('fileInput').files = files;
+        handleFileSelect(files[0]);
+      }
+    });
+  }
+  
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+      handleFileSelect(e.target.files[0]);
+    }
+  });
+  
+  function handleFileSelect(file) {
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        alert("File size exceeds 8MB limit.");
+        clearFile();
+        return;
+      }
+      document.getElementById('fileName').textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+      document.getElementById('uploadArea').style.display = 'none';
+      document.getElementById('uploadDetails').style.display = 'block';
+    }
+  }
+  
+  function selectCategory(cat) {
+    document.getElementById('selectedCategory').value = cat;
+    document.getElementById('filterForm').submit();
+  }
+  
+  // Preview handlers
+  function previewFile(fileId) {
+    const iframe = document.getElementById('previewIframe');
+    const img = document.getElementById('previewImg');
+    
+    // We retrieve the file to see if it is pdf or image
+    iframe.style.display = 'none';
+    img.style.display = 'none';
+    
+    // First retrieve metadata or build simple extension check
+    fetch(`/api/patient/files/${fileId}/summary`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('previewTitle').textContent = data.filename;
+        const ext = data.filename.split('.').pop().toLowerCase();
+        
+        if (ext === 'pdf') {
+          iframe.src = `/files/${fileId}/preview`;
+          iframe.style.display = 'block';
+        } else if (['jpg', 'jpeg', 'png'].includes(ext)) {
+          img.src = `/files/${fileId}/preview`;
+          img.style.display = 'block';
+        } else {
+          // Fallback view
+          iframe.src = `/files/${fileId}/preview`;
+          iframe.style.display = 'block';
+        }
+        
+        document.getElementById('previewModal').style.display = 'flex';
+      });
+  }
+  
+  function hidePreviewModal() {
+    document.getElementById('previewModal').style.display = 'none';
+    document.getElementById('previewIframe').src = '';
+    document.getElementById('previewImg').src = '';
+  }
+  
+  // Rename handlers
+  function renameFileModal(fileId, fileName) {
+    document.getElementById('renameFileId').value = fileId;
+    document.getElementById('renameInput').value = fileName;
+    document.getElementById('renameModal').style.display = 'flex';
+  }
+  
+  function hideRenameModal() {
+    document.getElementById('renameModal').style.display = 'none';
+  }
+  
+  async function submitRename(e) {
+    e.preventDefault();
+    const id = document.getElementById('renameFileId').value;
+    const name = document.getElementById('renameInput').value;
+    
+    const formData = new FormData();
+    formData.append("new_filename", name);
+    
+    try {
+      const res = await fetch(`/files/${id}/rename`, {
+        method: 'POST',
+        body: formData
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("Failed to rename file.");
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  }
+  
+  // AI summary handlers
+  function showSummaryModal(fileId) {
+    const content = document.getElementById('summaryContent');
+    content.innerHTML = '<div style="text-align: center; padding: 2rem;">🤖 Analyzing contents and generating clinical insights...</div>';
+    document.getElementById('summaryModal').style.display = 'flex';
+    
+    fetch(`/api/patient/files/${fileId}/summary`)
+      .then(res => res.json())
+      .then(data => {
+        // Format simple markdown into HTML
+        let raw = data.ai_summary || "No summary available for this file.";
+        
+        // Simple Markdown conversion for bolding and bullets
+        let formatted = raw
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/### (.*?)\n/g, '<h4 style="margin: 1.25rem 0 0.5rem 0; font-weight: 700; color: var(--accent);">$1</h4>')
+          .replace(/\n- (.*?)/g, '<li style="margin-left: 1rem; margin-bottom: 0.35rem;">$1</li>')
+          .replace(/\n\n/g, '<br/>');
+          
+        content.innerHTML = `
+          <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; color: var(--text);">Report: <strong>${data.filename}</strong></h4>
+          <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem;">
+            ${formatted}
+          </div>
+        `;
+      })
+      .catch(err => {
+        content.textContent = "Failed to load summary.";
+      });
+  }
+  
+  function hideSummaryModal() {
+    document.getElementById('summaryModal').style.display = 'none';
+  }
+</script>
+{% endblock %}

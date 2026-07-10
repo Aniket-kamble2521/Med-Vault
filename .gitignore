@@ -117,3 +117,11 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Databases
+*.db
+
+# Scratch directory
+scratch/
+
+

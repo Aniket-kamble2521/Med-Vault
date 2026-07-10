@@ -1,0 +1,141 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell">
+  
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Practice Follow-up Center</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Schedule, log, and track patient follow-up appointments and reminders.</p>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; @media (max-width: 1024px) { grid-template-columns: 1fr; }">
+    
+    <!-- LEFT PANEL: CATEGORIZED REMINDERS LIST -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      
+      <!-- Tab Controls -->
+      <div class="dr-panel" style="padding: 1rem; display: flex; gap: 0.5rem; overflow-x: auto; background: var(--surface);">
+        <button onclick="switchRemindersTab('all')" class="dr-btn-outline reminder-tab active-tab" id="rtab_all" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">All ({{ reminders | length }})</button>
+        <button onclick="switchRemindersTab('pending')" class="dr-btn-outline reminder-tab" id="rtab_pending" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Pending Action</button>
+        <button onclick="switchRemindersTab('completed')" class="dr-btn-outline reminder-tab" id="rtab_completed" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Completed</button>
+      </div>
+
+      <!-- List Container -->
+      <div class="dr-panel" style="padding: 1.5rem; background: var(--surface);">
+        {% if not reminders %}
+          <div style="text-align: center; padding: 3rem 1.5rem;">
+            <span style="font-size: 3rem;">⏰</span>
+            <h3 style="margin: 1rem 0 0.5rem; font-size: 1.2rem; font-weight: 700;">No Reminders Scheduled</h3>
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.90rem;">Use the panel on the right to set a follow-up date for a patient.</p>
+          </div>
+        {% else %}
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem;">
+            {% for r in reminders %}
+              {% set is_expired = r.remind_at < datetime.now().strftime("%Y-%m-%d") %}
+              <li class="reminder-item-card" data-status="{% if r.is_done %}completed{% else %}pending{% endif %}" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.75rem; align-items: start;">
+                  <span style="font-size: 1.5rem; background: {% if r.is_done %}rgba(16, 185, 129, 0.1){% else %}rgba(59, 130, 246, 0.1){% endif %}; padding: 0.5rem; border-radius: 8px; color: {% if r.is_done %}#10b981{% else %}var(--accent){% endif %};">
+                    {% if r.is_done %}✓{% else %}⏰{% endif %}
+                  </span>
+                  <div>
+                    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text);">
+                      {{ r.title }}
+                    </h3>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                      Patient: <strong>{{ r.patient_name }}</strong> &bull; Date: 
+                      <span style="font-weight: 600; color: {% if not r.is_done and is_expired %}#ef4444{% else %}var(--text){% endif %};">
+                        {{ r.remind_at }}
+                        {% if not r.is_done and is_expired %}(Overdue){% endif %}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <form method="post" action="/doctor/reminders/{{ r.id }}/toggle" style="margin: 0;">
+                  <button type="submit" class="dr-btn-outline" style="width: auto; padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: 6px; font-weight: bold; border-color: {% if r.is_done %}rgba(16, 185, 129, 0.4){% else %}var(--border){% endif %}; color: {% if r.is_done %}#10b981{% else %}var(--text){% endif %};">
+                    {% if r.is_done %}Mark Incomplete{% else %}Mark Complete{% endif %}
+                  </button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL: QUICK FOLLOW-UP SCHEDULER -->
+    <aside class="dr-panel" style="padding: 1.5rem; background: var(--surface); border-top: 4px solid var(--accent);">
+      <h3 style="margin-top: 0; font-size: 1.05rem; font-weight: 700; color: var(--text);">Quick Scheduler</h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 1rem; line-height: 1.4;">Add a follow-up reminder for a registered clinical patient.</p>
+
+      <form method="post" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label class="dr-label-full" for="patient_name">Select Patient *</label>
+          <select id="patient_name" name="patient_name" class="dr-input" required>
+            <option value="">-- Choose Patient --</option>
+            {% for p in patients %}
+              <option value="{{ p.full_name }}">{{ p.full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="dr-label-full" for="title">Reminder Label *</label>
+          <input class="dr-input" id="title" name="title" required placeholder="e.g. Blood Pressure review" />
+        </div>
+
+        <div>
+          <label class="dr-label-full" for="remind_at">Scheduled Date *</label>
+          <input type="date" class="dr-input" id="remind_at" name="remind_at" required />
+        </div>
+
+        <button type="submit" class="dr-btn-gradient" style="padding: 0.6rem; width: 100%; margin-top: 0.5rem;">
+          🗓️ Save Reminder
+        </button>
+      </form>
+    </aside>
+
+  </div>
+</div>
+
+<style>
+  .reminder-tab {
+    border-color: var(--border) !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-weight: 600;
+  }
+  .reminder-tab.active-tab {
+    border-color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+    color: var(--accent) !important;
+  }
+</style>
+
+<script>
+  function switchRemindersTab(status) {
+    // Deactivate buttons
+    document.querySelectorAll('.reminder-tab').forEach(btn => btn.classList.remove('active-tab'));
+    
+    // Activate target
+    if (status === 'all') {
+      document.getElementById('rtab_all').classList.add('active-tab');
+      document.querySelectorAll('.reminder-item-card').forEach(item => item.style.display = 'flex');
+    } else if (status === 'pending') {
+      document.getElementById('rtab_pending').classList.add('active-tab');
+      document.querySelectorAll('.reminder-item-card').forEach(item => {
+        item.style.display = item.getAttribute('data-status') === 'pending' ? 'flex' : 'none';
+      });
+    } else {
+      document.getElementById('rtab_completed').classList.add('active-tab');
+      document.querySelectorAll('.reminder-item-card').forEach(item => {
+        item.style.display = item.getAttribute('data-status') === 'completed' ? 'flex' : 'none';
+      });
+    }
+  }
+</script>
+{% endblock %}

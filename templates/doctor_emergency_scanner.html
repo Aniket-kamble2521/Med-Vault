@@ -1,0 +1,1012 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell emergency-scanner-container">
+  <!-- Header Section -->
+  <div class="scanner-header">
+    <div class="emergency-badge">🚨 CRITICAL ACCESS PANEL</div>
+    <h1 class="scanner-title">Emergency QR Scanner</h1>
+    <p class="scanner-subtitle">
+      Scan patient's MedVault Emergency QR code, upload a QR code image, or enter the token manually to obtain instantaneous, secure access to vital clinical data.
+    </p>
+  </div>
+
+  <div class="scanner-layout">
+    <!-- Left Column: Scanner Panel -->
+    <div class="scanner-column-main">
+      <div class="premium-card scanner-card">
+        <div class="card-glow-red"></div>
+        <div class="scanner-tabs">
+          <button class="scanner-tab active" id="tab-camera" onclick="switchTab('camera')">
+            <span class="tab-icon">📷</span> Live Camera
+          </button>
+          <button class="scanner-tab" id="tab-upload" onclick="switchTab('upload')">
+            <span class="tab-icon">📤</span> Upload QR Image
+          </button>
+          <button class="scanner-tab" id="tab-manual" onclick="switchTab('manual')">
+            <span class="tab-icon">⌨️</span> Manual Token
+          </button>
+        </div>
+
+        <!-- Camera Interface -->
+        <div class="tab-panel active" id="panel-camera">
+          <div class="scanner-view-container">
+            <div id="qr-reader" class="scanner-view"></div>
+            <!-- Laser overlay scan animation line -->
+            <div class="scan-laser-line" id="laser-line"></div>
+            <div class="scanner-frame-overlay"></div>
+          </div>
+
+          <div class="scanner-controls">
+            <button type="button" class="scanner-btn btn-secondary" id="btn-camera-toggle" onclick="toggleCameraSwitch()">
+              🔄 Switch Camera
+            </button>
+            <button type="button" class="scanner-btn btn-secondary" id="btn-flashlight-toggle" onclick="toggleFlashlight()" disabled>
+              🔦 Flashlight
+            </button>
+            <button type="button" class="scanner-btn btn-danger" id="btn-stop-camera" onclick="stopScanner()" style="display:none;">
+              🛑 Stop Camera
+            </button>
+            <button type="button" class="scanner-btn btn-primary" id="btn-start-camera" onclick="startScanner()">
+              ▶️ Start Camera
+            </button>
+          </div>
+          <p id="scanner-status" class="status-indicator">Camera ready.</p>
+        </div>
+
+        <!-- Image Upload Interface -->
+        <div class="tab-panel" id="panel-upload">
+          <div id="qr-reader-file" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden;"></div>
+          <div class="upload-dropzone" id="dropzone" onclick="triggerFileInput()">
+            <span class="upload-icon">📁</span>
+            <h3>Select or Drop QR Code Image</h3>
+            <p>Supports PNG, JPG, JPEG, SVG</p>
+            <input type="file" id="qr-file-input" accept="image/*" style="display:none;" onchange="handleFileSelected(event)" />
+          </div>
+          <div id="upload-feedback" class="status-indicator" style="margin-top: 1rem;">Select an image file above to decode.</div>
+        </div>
+
+        <!-- Manual Token Entry -->
+        <div class="tab-panel" id="panel-manual">
+          <div class="manual-entry-form">
+            <label for="manual-token-input" class="field-label">Emergency Token / URL</label>
+            <input type="text" id="manual-token-input" class="premium-input" placeholder="Paste the token or complete emergency URL..." autocomplete="off" />
+            <button type="button" class="scanner-btn btn-primary" onclick="submitManualToken()" style="margin-top:1rem; width:100%;">
+              Verify &amp; Open Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Audit Logs & Local History -->
+    <div class="scanner-column-side">
+      <!-- Local Device Scan History -->
+      <div class="premium-card">
+        <h2 class="section-title">🕒 Local Scan History</h2>
+        <p class="section-desc">Recent scans performed on this device.</p>
+        <div class="logs-container" id="local-history-list">
+          <div class="empty-log-state">No recent local scans.</div>
+        </div>
+      </div>
+
+      <!-- Live Database Audit Logs -->
+      <div class="premium-card" style="margin-top: 1.5rem;">
+        <h2 class="section-title">🛡️ Recent Audit Access Logs</h2>
+        <p class="section-desc">Every emergency access is strictly audited &amp; recorded.</p>
+        <div class="logs-container">
+          {% if logs %}
+            {% for log in logs %}
+              <div class="log-item">
+                <div class="log-item-header">
+                  <span class="log-patient">👤 {{ log.patient_name }}</span>
+                  <span class="log-time">{{ log.accessed_at }}</span>
+                </div>
+                <div class="log-item-body">
+                  <span class="log-badge">Reason</span> {{ log.reason }}
+                </div>
+                {% if log.token %}
+                  <div class="log-item-footer">
+                    <a href="{{ url_for('emergency.doctor_emergency_profile', token=log.token) }}" class="log-action-link">View Summary &rarr;</a>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-log-state">No database access logs recorded for your account yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reason for Access Dialog Modal -->
+<div class="premium-modal-overlay" id="access-modal">
+  <div class="premium-modal">
+    <div class="modal-header">
+      <span class="modal-alert-icon">⚠️</span>
+      <h2>Emergency Audit Form</h2>
+    </div>
+    <div class="modal-body">
+      <p class="modal-instruction">
+        You are requesting access to restricted emergency health data. Under medical compliance audits, please provide the clinical reason for this access.
+      </p>
+      <label for="access-reason" class="field-label">Reason for Emergency Access</label>
+      <select id="access-reason-select" class="premium-input" onchange="toggleCustomReason(this.value)" style="margin-bottom: 0.75rem;">
+        <option value="Critical Emergency Response">Critical Emergency Response</option>
+        <option value="Patient Unconscious / Incapacitated">Patient Unconscious / Incapacitated</option>
+        <option value="Acute Trauma Admittance">Acute Trauma Admittance</option>
+        <option value="Disaster Relief Intake">Disaster Relief Intake</option>
+        <option value="Other (Write Below)">Other (Specify custom reason)</option>
+      </select>
+      <textarea id="access-reason" class="premium-input" placeholder="Type specific emergency reason..." rows="3" style="display:none;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="scanner-btn btn-secondary" onclick="closeReasonModal()">Cancel</button>
+      <button type="button" class="scanner-btn btn-danger" onclick="confirmEmergencyAccess()">Request Emergency Access</button>
+    </div>
+  </div>
+</div>
+
+<!-- html5-qrcode Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  let html5QrCode = null;
+  let currentCameraId = null;
+  let camerasList = [];
+  let currentCameraIndex = 0;
+  let activeTokenToVerify = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderLocalHistory();
+    // Pre-request camera list if possible
+    if (typeof Html5Qrcode !== 'undefined') {
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 0) {
+          camerasList = devices;
+          currentCameraId = devices[0].id;
+        }
+      }).catch(err => {
+        console.warn("Could not pre-fetch cameras", err);
+      });
+    }
+  });
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.scanner-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+    
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+    document.getElementById(`panel-${tabId}`).classList.add('active');
+
+    // Stop scanner if leaving camera tab
+    if (tabId !== 'camera') {
+      stopScanner();
+    }
+  }
+
+  function setStatus(msg, isError = false) {
+    const statusEl = document.getElementById("scanner-status");
+    if (statusEl) {
+      statusEl.textContent = msg;
+      statusEl.style.color = isError ? "var(--accent)" : "var(--text-muted)";
+    }
+  }
+
+  function startScanner() {
+    if (html5QrCode && html5QrCode.isScanning) {
+      return;
+    }
+
+    setStatus("Initializing camera scanner...");
+    document.getElementById("laser-line").style.display = "block";
+    
+    const config = {
+      fps: 12,
+      qrbox: (width, height) => {
+        const size = Math.min(width, height) * 0.7;
+        return { width: size, height: size };
+      }
+    };
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+    
+    const facingMode = camerasList.length > 0 ? { deviceId: currentCameraId } : { facingMode: "environment" };
+
+    html5QrCode.start(
+      facingMode,
+      config,
+      (decodedText) => {
+        // Successful scan
+        playSuccessBeep();
+        handleScannedToken(decodedText);
+      },
+      (errorMessage) => {
+        // Silent capture failure (frequent during search)
+      }
+    ).then(() => {
+      setStatus("Scanner active. Align QR Code inside the scan frame.");
+      document.getElementById("btn-start-camera").style.display = "none";
+      document.getElementById("btn-stop-camera").style.display = "inline-flex";
+      
+      // Try to enable flashlight toggle if supported
+      setTimeout(() => {
+        try {
+          if (html5QrCode.getRunningTrackCapabilities().torch) {
+            document.getElementById("btn-flashlight-toggle").removeAttribute("disabled");
+          }
+        } catch(e) {
+          console.log("Torch capability check error:", e);
+        }
+      }, 1000);
+    }).catch(err => {
+      setStatus("Failed to start camera: " + err, true);
+      document.getElementById("laser-line").style.display = "none";
+    });
+  }
+
+  function stopScanner() {
+    document.getElementById("laser-line").style.display = "none";
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop().then(() => {
+        setStatus("Camera stopped.");
+        document.getElementById("btn-start-camera").style.display = "inline-flex";
+        document.getElementById("btn-stop-camera").style.display = "none";
+        document.getElementById("btn-flashlight-toggle").setAttribute("disabled", "true");
+      }).catch(err => {
+        console.error("Stop scanner error:", err);
+      });
+    }
+  }
+
+  function toggleCameraSwitch() {
+    if (camerasList.length <= 1) {
+      // Re-scan
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 1) {
+          camerasList = devices;
+          switchCamera();
+        } else {
+          setStatus("No alternative camera source detected on this device.", true);
+        }
+      }).catch(err => setStatus("Camera search error: " + err, true));
+    } else {
+      switchCamera();
+    }
+  }
+
+  function switchCamera() {
+    currentCameraIndex = (currentCameraIndex + 1) % camerasList.length;
+    currentCameraId = camerasList[currentCameraIndex].id;
+    
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop().then(() => {
+        startScanner();
+      });
+    } else {
+      setStatus(`Switched to camera: ${camerasList[currentCameraIndex].label || currentCameraIndex}`);
+    }
+  }
+
+  let flashlightOn = false;
+  function toggleFlashlight() {
+    if (!html5QrCode || !html5QrCode.isScanning) return;
+    
+    try {
+      flashlightOn = !flashlightOn;
+      html5QrCode.applyVideoConstraints({
+        advanced: [{ torch: flashlightOn }]
+      });
+      document.getElementById("btn-flashlight-toggle").style.background = flashlightOn ? "rgba(239, 68, 68, 0.2)" : "";
+    } catch (e) {
+      setStatus("Flashlight control not supported by current lens.", true);
+    }
+  }
+
+  function extractToken(text) {
+    if (!text) return null;
+    let t = text.trim();
+
+    // 1. If it's a full URL containing /emergency/
+    if (t.includes("/emergency/")) {
+      const parts = t.split("/emergency/");
+      let tokenPart = parts[parts.length - 1];
+      // Remove query parameters or trailing slashes
+      tokenPart = tokenPart.split("?")[0].split("/")[0].trim();
+      return tokenPart;
+    }
+
+    // 2. If it's a full URL containing /emergency-profile/
+    if (t.includes("/emergency-profile/")) {
+      const parts = t.split("/emergency-profile/");
+      let tokenPart = parts[parts.length - 1];
+      // Remove query parameters or trailing slashes
+      tokenPart = tokenPart.split("?")[0].split("/")[0].trim();
+      return tokenPart;
+    }
+
+    // 3. Match any sequence of 30 to 60 base64 URL-safe characters
+    let m = t.match(/([A-Za-z0-9_-]{30,60})/);
+    if (m) return m[1];
+    return null;
+  }
+
+  function handleScannedToken(text) {
+    const token = extractToken(text);
+    if (token) {
+      stopScanner();
+      openReasonModal(token);
+    } else {
+      setStatus("Invalid QR code. Please scan a valid MedVault Emergency QR.", true);
+    }
+  }
+
+  // File Upload Handling
+  function triggerFileInput() {
+    document.getElementById("qr-file-input").click();
+  }
+
+  function handleFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const feedbackEl = document.getElementById("upload-feedback");
+    feedbackEl.textContent = `Analyzing ${file.name}...`;
+    feedbackEl.style.color = "var(--text-muted)";
+
+    const html5QrCodeLocal = new Html5Qrcode("qr-reader-file");
+    html5QrCodeLocal.scanFile(file, true)
+      .then(decodedText => {
+        playSuccessBeep();
+        const token = extractToken(decodedText);
+        if (token) {
+          feedbackEl.textContent = "QR Code resolved successfully!";
+          feedbackEl.style.color = "var(--success)";
+          openReasonModal(token);
+        } else {
+          feedbackEl.textContent = "Decoded file is not a valid MedVault Emergency Link.";
+          feedbackEl.style.color = "var(--accent)";
+        }
+      })
+      .catch(err => {
+        feedbackEl.textContent = "Error: QR Code could not be read from image. Ensure it is clear and well lit.";
+        feedbackEl.style.color = "var(--accent)";
+      });
+  }
+
+  function submitManualToken() {
+    const inputVal = document.getElementById("manual-token-input").value.trim();
+    if (!inputVal) {
+      alert("Please enter a token or URL.");
+      return;
+    }
+    const token = extractToken(inputVal) || inputVal;
+    openReasonModal(token);
+  }
+
+  // Reason Modal
+  function openReasonModal(token) {
+    activeTokenToVerify = token;
+    document.getElementById("access-modal").style.display = "flex";
+  }
+
+  function closeReasonModal() {
+    document.getElementById("access-modal").style.display = "none";
+    activeTokenToVerify = null;
+  }
+
+  function toggleCustomReason(value) {
+    const customTxt = document.getElementById("access-reason");
+    if (value === "Other (Write Below)") {
+      customTxt.style.display = "block";
+      customTxt.required = true;
+    } else {
+      customTxt.style.display = "none";
+      customTxt.required = false;
+    }
+  }
+
+  function confirmEmergencyAccess() {
+    if (!activeTokenToVerify) return;
+
+    const selectVal = document.getElementById("access-reason-select").value;
+    let reasonText = selectVal;
+    if (selectVal === "Other (Write Below)") {
+      reasonText = document.getElementById("access-reason").value.trim();
+      if (!reasonText) {
+        alert("Please specify your clinical reason.");
+        return;
+      }
+    }
+
+    // Submit audit access request to server
+    fetch("{{ url_for('emergency.doctor_emergency_access') }}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: JSON.stringify({
+        token: activeTokenToVerify,
+        reason: reasonText
+      })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(
+          data => { throw new Error(data.error || "Validation failed."); },
+          () => {
+            if (res.status === 403) {
+              throw new Error("Unauthorized. Only doctor accounts can validate emergency tokens.");
+            } else if (res.status === 401 || res.redirected) {
+              throw new Error("Your session has expired. Please log in again.");
+            } else {
+              throw new Error("Server error occurred during validation (Status " + res.status + ").");
+            }
+          }
+        );
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Save scan in local history
+        saveToLocalHistory(activeTokenToVerify);
+        // Redirect to profile
+        window.location.href = data.redirect_url;
+      } else {
+        alert(data.error || "Failed to authorize emergency access token.");
+        closeReasonModal();
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert(err.message || "Server error occurred during security validation.");
+      closeReasonModal();
+    });
+  }
+
+  // Local Scan History storage
+  function saveToLocalHistory(token) {
+    try {
+      let history = JSON.parse(localStorage.getItem("medvault_scan_history") || "[]");
+      const timestamp = new Date().toLocaleString();
+      
+      // Remove duplicate
+      history = history.filter(item => item.token !== token);
+      
+      history.unshift({
+        token: token,
+        time: timestamp
+      });
+      
+      // Limit to 10
+      if (history.length > 10) history.pop();
+      localStorage.setItem("medvault_scan_history", JSON.stringify(history));
+    } catch (e) {
+      console.warn("Failed to write to local storage scan history", e);
+    }
+  }
+
+  function renderLocalHistory() {
+    const listEl = document.getElementById("local-history-list");
+    if (!listEl) return;
+
+    try {
+      const history = JSON.parse(localStorage.getItem("medvault_scan_history") || "[]");
+      if (history.length === 0) {
+        listEl.innerHTML = '<div class="empty-log-state">No recent local scans.</div>';
+        return;
+      }
+
+      listEl.innerHTML = "";
+      history.forEach(item => {
+        const itemEl = document.createElement("div");
+        itemEl.className = "log-item";
+        itemEl.style.borderLeft = "2px solid #3b82f6";
+        itemEl.innerHTML = `
+          <div class="log-item-header">
+            <span class="log-patient">🔑 Token: ${item.token.substring(0, 8)}...</span>
+            <span class="log-time">${item.time}</span>
+          </div>
+          <div class="log-item-footer" style="margin-top: 0.25rem;">
+            <a href="/doctor/emergency-profile/${item.token}" class="log-action-link" style="color: #3b82f6;">Re-open &rarr;</a>
+          </div>
+        `;
+        listEl.appendChild(itemEl);
+      });
+    } catch (e) {
+      console.warn("Failed to read local scan history", e);
+    }
+  }
+
+  // Sound effects
+  function playSuccessBeep() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+        audioCtx.close();
+      }, 150);
+    } catch(e) {
+      // Audio context blocked/unsupported
+    }
+  }
+</script>
+
+<style>
+  /* Localized styles matching Apple Health & Vision Pro glassmorphism design */
+  :root {
+    --scanner-bg: rgba(255, 255, 255, 0.45);
+    --scanner-bg-active: rgba(255, 255, 255, 0.85);
+    --scanner-border: rgba(226, 232, 240, 0.8);
+  }
+
+  [data-theme="dark"] {
+    --scanner-bg: rgba(30, 41, 59, 0.45);
+    --scanner-bg-active: rgba(15, 23, 42, 0.85);
+    --scanner-border: rgba(51, 65, 85, 0.8);
+  }
+
+  .emergency-scanner-container {
+    max-width: 1200px;
+    padding: 2rem 1.5rem;
+  }
+
+  .scanner-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+
+  .emergency-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    display: inline-flex;
+    letter-spacing: 0.1em;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+    margin-bottom: 1rem;
+    animation: alert-pulse 2s infinite;
+  }
+
+  .scanner-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .scanner-subtitle {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    max-width: 750px;
+    margin: 0.5rem auto 0;
+    line-height: 1.6;
+  }
+
+  .scanner-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .scanner-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Glassmorphism premium card */
+  .premium-card {
+    background: var(--scanner-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--scanner-border);
+    border-radius: 24px;
+    padding: 1.5rem;
+    position: relative;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .card-glow-red {
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(239,68,68,0.2) 0%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .scanner-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.35rem;
+    border-radius: 14px;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  [data-theme="dark"] .scanner-tabs {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .scanner-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .scanner-tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .tab-panel {
+    display: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tab-panel.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  /* Scanner Frame */
+  .scanner-view-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 1;
+    margin: 0 auto 1.5rem;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #000;
+    border: 3px solid var(--border);
+  }
+
+  .scanner-view {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  .scanner-view video {
+    object-fit: cover !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Laser line pulse animation */
+  .scan-laser-line {
+    position: absolute;
+    top: 0;
+    left: 5%;
+    width: 90%;
+    height: 4px;
+    background: linear-gradient(90deg, rgba(239,68,68,0) 0%, rgba(239,68,68,1) 50%, rgba(239,68,68,0) 100%);
+    box-shadow: 0 0 10px #ef4444;
+    z-index: 5;
+    display: none;
+    animation: scan-pulse-laser 2.5s infinite linear;
+  }
+
+  .scanner-frame-overlay {
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 70%;
+    height: 70%;
+    border: 2px dashed rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    pointer-events: none;
+    z-index: 4;
+    box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.45);
+  }
+
+  .scanner-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .scanner-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  }
+
+  .btn-secondary {
+    background: rgba(0,0,0,0.06);
+    color: var(--text);
+  }
+  [data-theme="dark"] .btn-secondary {
+    background: rgba(255,255,255,0.06);
+  }
+  .btn-secondary:hover {
+    background: rgba(0,0,0,0.1);
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+  }
+  .btn-danger:hover {
+    background: #dc2626;
+  }
+
+  .status-indicator {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+    font-weight: 500;
+  }
+
+  /* File Upload Zone */
+  .upload-dropzone {
+    border: 2px dashed var(--scanner-border);
+    background: rgba(0,0,0,0.02);
+    border-radius: 20px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .upload-dropzone:hover {
+    border-color: var(--accent);
+    background: rgba(239, 68, 68, 0.02);
+  }
+
+  .upload-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  /* Manual Input */
+  .manual-entry-form {
+    padding: 1rem 0;
+  }
+
+  .field-label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .premium-input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+  }
+  .premium-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* Logs & Sidebar history styling */
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text);
+  }
+  .section-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.2rem 0 1rem;
+  }
+
+  .logs-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .log-item {
+    background: rgba(0, 0, 0, 0.02);
+    border-left: 2px solid #ef4444;
+    border-radius: 0 12px 12px 0;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+  [data-theme="dark"] .log-item {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .log-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .log-patient {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .log-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .log-item-body {
+    color: var(--text);
+  }
+
+  .log-badge {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+  }
+
+  .log-action-link {
+    font-size: 0.75rem;
+    color: #ef4444;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  .log-action-link:hover {
+    text-decoration: underline;
+  }
+
+  .empty-log-state {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 2rem 0;
+    font-style: italic;
+  }
+
+  /* Modal Dialog Glassmorphism style */
+  .premium-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .premium-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 460px;
+    padding: 2rem;
+    box-sizing: border-box;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .modal-header h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text);
+  }
+  .modal-alert-icon {
+    font-size: 1.75rem;
+    color: #f59e0b;
+  }
+
+  .modal-instruction {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  /* Keyframe Animations */
+  @keyframes alert-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(0.97); }
+  }
+
+  @keyframes scan-pulse-laser {
+    0% { top: 15%; opacity: 0; }
+    5% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 85%; opacity: 0; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes modalSlide {
+    from { opacity: 0; transform: scale(0.95) translateY(15px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+</style>
+{% endblock %}

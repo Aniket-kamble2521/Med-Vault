@@ -1,0 +1,200 @@
+{% extends "base_patient.html" %}
+{% block content %}
+<div class="pd-wrap" style="max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;">
+  <a href="{{ url_for('core.dashboard') }}" class="pd-back-link" style="text-decoration: none; color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to Dashboard
+  </a>
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem;">
+    <div>
+      <h1 style="margin: 0 0 0.5rem 0; font-size: 2.25rem; font-weight: 800; color: var(--text); tracking: -0.025em;">Notification Center</h1>
+      <p style="margin: 0; color: var(--text-muted); font-size: 1.05rem;">Stay updated with appointments, medicines, payments, and lab reports.</p>
+    </div>
+    {% if notifications %}
+      <button onclick="markAllAsRead()" class="pd-btn-outline" style="border-radius: 12px; font-weight: 600; padding: 0.65rem 1.25rem; border-color: rgba(var(--accent-rgb), 0.3); color: var(--accent); cursor: pointer;">
+        Mark All as Read
+      </button>
+    {% endif %}
+  </div>
+  
+  <!-- Search & Category Filters -->
+  <div style="background: var(--surface); padding: 1.25rem; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);">
+    <form method="get" action="{{ url_for('core.notifications_page') }}" id="notifFilterForm" style="margin: 0; display: flex; flex-direction: column; gap: 1rem;">
+      <div style="position: relative;">
+        <input class="pd-input" type="search" name="q" value="{{ search or '' }}" placeholder="Search notifications by title or description..." style="width: 100%; max-width: none; padding-left: 2.5rem; height: 44px; border-radius: 10px;" />
+        <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </span>
+      </div>
+      
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 0.5rem;">Filter by Category:</span>
+        <input type="hidden" name="category" id="notifSelectedCategory" value="{{ selected_category or '' }}" />
+        <button type="button" class="notif-cat-btn {% if not selected_category %}active{% endif %}" onclick="filterByCategory('')">
+          All
+        </button>
+        {% for cat, count in counts.items() %}
+          <button type="button" class="notif-cat-btn {% if selected_category == cat %}active{% endif %}" onclick="filterByCategory('{{ cat }}')">
+            {{ cat }} {% if count > 0 %}<span style="background: rgba(255,255,255,0.25); font-size: 0.7rem; padding: 0.05rem 0.3rem; border-radius: 8px; margin-left: 0.25rem;">{{ count }}</span>{% endif %}
+          </button>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+  
+  <!-- Notifications List -->
+  {% if notifications %}
+    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem;">
+      {% for n in notifications %}
+        <div id="notif-card-{{ n.id }}" class="notif-item-card {% if not n.is_read %}unread{% endif %}" style="display: flex; gap: 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; transition: all 0.2s; position: relative; align-items: flex-start;">
+          
+          <!-- Category Indicator Icon -->
+          <div class="notif-cat-icon-wrapper {{ n.category.lower().replace(' ', '-') }}" style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; background: #f3f4f6; flex-shrink: 0;">
+            {% if n.category == 'Appointments' %}
+              📅
+            {% elif n.category == 'Medicines' %}
+              💊
+            {% elif n.category == 'Reports' %}
+              📄
+            {% elif n.category == 'Prescriptions' %}
+              ✍️
+            {% elif n.category == 'Payments' %}
+              💳
+            {% elif n.category == 'Doctor Messages' %}
+              💬
+            {% else %}
+              🔔
+            {% endif %}
+          </div>
+          
+          <!-- Message Body -->
+          <div style="flex-grow: 1; min-width: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+              <h4 style="margin: 0 0 0.25rem 0; font-size: 1.05rem; font-weight: 700; color: var(--text); display: inline-flex; align-items: center;">
+                {{ n.title }}
+                {% if not n.is_read %}
+                  <span style="background: var(--accent); color: white; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 8px; margin-left: 0.5rem; text-transform: uppercase; vertical-align: middle; display: inline-block;">New</span>
+                {% endif %}
+              </h4>
+              <span style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">{{ n.created_label }}</span>
+            </div>
+            <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 1.4;">{{ n.message }}</p>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 0.75rem; align-items: center;">
+              {% if not n.is_read %}
+                <button onclick="markAsRead({{ n.id }})" class="notif-action-btn" style="color: var(--accent); background: none; border: none; font-weight: 600; cursor: pointer; padding: 0;">Mark as Read</button>
+                <span style="color: var(--border);">|</span>
+              {% endif %}
+              <button onclick="deleteNotification({{ n.id }})" class="notif-action-btn" style="color: #ef4444; background: none; border: none; font-weight: 600; cursor: pointer; padding: 0;">Delete</button>
+            </div>
+          </div>
+          
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <!-- Empty State -->
+    <div style="text-align: center; padding: 5rem 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 24px;">
+      <div style="font-size: 4rem; margin-bottom: 1.5rem;">🔔</div>
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem;">All caught up!</h3>
+      <p style="color: var(--text-muted); max-width: 420px; margin: 0 auto;">No notifications found. We'll alert you here when you have upcoming appointments, medication tasks, or billing updates.</p>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .notif-item-card {
+    border-left: 4px solid var(--border) !important;
+  }
+  .notif-item-card.unread {
+    border-left-color: var(--accent) !important;
+    background: rgba(var(--accent-rgb), 0.01) !important;
+  }
+  .notif-cat-btn {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    padding: 0.45rem 1rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  [data-theme="dark"] .notif-cat-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+  .notif-cat-btn:hover {
+    background: #e5e7eb;
+  }
+  [data-theme="dark"] .notif-cat-btn:hover {
+    background: #334155;
+  }
+  .notif-cat-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .notif-action-btn:hover {
+    text-decoration: underline;
+  }
+  [data-theme="dark"] .notif-cat-icon-wrapper {
+    background: #1e293b !important;
+  }
+</style>
+
+<script>
+  function filterByCategory(cat) {
+    document.getElementById('notifSelectedCategory').value = cat;
+    document.getElementById('notifFilterForm').submit();
+  }
+  
+  async function markAsRead(id) {
+    try {
+      const res = await fetch(`/api/patient/notifications/${id}/read`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  }
+  
+  async function markAllAsRead() {
+    try {
+      const res = await fetch('/api/patient/notifications/read-all', {
+        method: 'POST'
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  }
+  
+  async function deleteNotification(id) {
+    try {
+      const res = await fetch(`/api/patient/notifications/${id}/delete`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const card = document.getElementById(`notif-card-${id}`);
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          card.remove();
+          window.location.reload();
+        }, 200);
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  }
+</script>
+{% endblock %}

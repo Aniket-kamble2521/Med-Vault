@@ -3,7 +3,8 @@
   <div class="dr-shell dr-shell--narrow">
     <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
     <h1 class="dr-page-title">Create prescription</h1>
-    <p class="dr-page-lead">Record a medication order for a patient. This is stored in your portal for your records.</p>
+    <p class="dr-page-lead">Record a medication order for a patient. You can pick from your saved templates to autofill fields.</p>
+    
     <form method="post" class="dr-panel dr-settings-form">
       <label class="dr-label-full" for="patient_name">Patient</label>
       {% if patients %}
@@ -17,24 +18,57 @@
         <input class="dr-input" id="patient_name" name="patient_name" required placeholder="Patient full name" />
         <p class="dr-hint">Add patients from the dashboard first, or type any name for now.</p>
       {% endif %}
+
+      {% if templates %}
+        <label class="dr-label-full" for="template_select" style="margin-top: 1rem">Load from Template</label>
+        <select class="dr-input" id="template_select" onchange="applyPrescriptionTemplate(this.value)">
+          <option value="">-- Select Template (Optional) --</option>
+          {% for t in templates %}
+            <option value="{{ t.id }}" data-med="{{ t.medicine_name }}" data-dose="{{ t.dosage }}" data-freq="{{ t.frequency }}" data-dur="{{ t.duration_days }}" data-notes="{{ t.notes }}">
+              {{ t.template_name }} ({{ t.medicine_name }})
+            </option>
+          {% endfor %}
+        </select>
+      {% endif %}
+
       <label class="dr-label-full" for="medicine_name" style="margin-top: 1rem">Medicine</label>
       <input class="dr-input" id="medicine_name" name="medicine_name" required placeholder="e.g. Atorvastatin 20mg" />
+      
       <label class="dr-label-full" for="dosage" style="margin-top: 1rem">Dosage</label>
       <input class="dr-input" id="dosage" name="dosage" placeholder="e.g. 1 tablet" />
+      
       <label class="dr-label-full" for="frequency" style="margin-top: 1rem">Frequency</label>
       <input class="dr-input" id="frequency" name="frequency" placeholder="e.g. Once daily" />
+      
       <label class="dr-label-full" for="duration_days" style="margin-top: 1rem">Duration (days)</label>
       <input class="dr-input" id="duration_days" name="duration_days" type="number" min="0" max="365" placeholder="e.g. 14" value="0" />
+      
       <label class="dr-label-full" for="notes" style="margin-top: 1rem">Notes (optional)</label>
       <textarea class="dr-input" id="notes" name="notes" rows="2"></textarea>
+      
       <label class="dr-check" style="margin-top: 1rem">
         <input type="checkbox" name="send_to_patient" value="1" />
         <span>Save &amp; mark as sent to patient (recorded in your portal)</span>
       </label>
-      <div class="dr-form-actions" style="margin-top: 1rem">
+      
+      <div class="dr-form-actions" style="margin-top: 1.5rem">
         <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save prescription</button>
         <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
       </div>
     </form>
   </div>
+
+  <script>
+    function applyPrescriptionTemplate(val) {
+      if (!val) return;
+      const select = document.getElementById('template_select');
+      const opt = select.options[select.selectedIndex];
+      
+      document.getElementById('medicine_name').value = opt.getAttribute('data-med') || '';
+      document.getElementById('dosage').value = opt.getAttribute('data-dose') || '';
+      document.getElementById('frequency').value = opt.getAttribute('data-freq') || '';
+      document.getElementById('duration_days').value = opt.getAttribute('data-dur') || '0';
+      document.getElementById('notes').value = opt.getAttribute('data-notes') || '';
+    }
+  </script>
 {% endblock %}

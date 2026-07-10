@@ -1,0 +1,285 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell dr-shell--wide">
+  
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Unified EHR Consultation Workspace</h1>
+    </div>
+    
+    <!-- Quick Patient Switcher Form -->
+    <form method="get" style="display: flex; gap: 0.5rem; align-items: center;">
+      <label for="patient_select" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Active Patient:</label>
+      <select id="patient_select" name="patient_id" class="dr-input" style="margin-top: 0; padding: 0.4rem 2rem 0.4rem 0.75rem; width: auto; font-size: 0.88rem;" onchange="this.form.submit()">
+        <option value="">-- Choose Patient --</option>
+        {% for p in patients %}
+          <option value="{{ p.id }}" {% if selected_patient and selected_patient.id == p.id %}selected{% endif %}>{{ p.full_name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  {% if not selected_patient %}
+    <!-- Alert State: No Patient Selected -->
+    <div class="dr-panel" style="text-align: center; padding: 3rem 1.5rem; border: 2px dashed var(--border); border-radius: 16px;">
+      <span style="font-size: 3rem;">🩺</span>
+      <h2 style="margin: 1rem 0 0.5rem; font-size: 1.5rem; font-weight: 800;">Consultation Workstation Idle</h2>
+      <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 1.5rem; font-size: 0.95rem;">
+        Please select a patient from the dropdown above or click "Start Consultation" from your dashboard scheduler to initialize the workspace.
+      </p>
+    </div>
+  {% else %}
+    <!-- Active Workspace -->
+    <div style="display: grid; grid-template-columns: 280px 1fr 300px; gap: 1.5rem; align-items: start; @media (max-width: 1024px) { grid-template-columns: 1fr; }">
+      
+      <!-- COLUMN 1: PATIENT CLINICAL HISTORY -->
+      <aside style="display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Profile Overview Card -->
+        <div class="dr-panel" style="padding: 1rem; border-top: 4px solid var(--accent);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div style="width: 3rem; height: 3rem; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #4f46e5); color: white; display: grid; place-items: center; font-weight: bold; font-size: 1.1rem;">
+              {{ selected_patient.full_name[:2] }}
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text);">{{ selected_patient.full_name }}</h3>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">Risk: {{ selected_patient.risk_level or "Low" }}</span>
+            </div>
+          </div>
+          <div style="font-size: 0.82rem; line-height: 1.5; color: var(--text-muted);">
+            <div><strong>Age/Gender:</strong> {% if patient_data %}{{ patient_data.dob }} ({{ patient_data.gender }}){% else %}N/A{% endif %}</div>
+            <div><strong>Blood Group:</strong> {% if patient_data %}{{ patient_data.blood_group }}{% else %}N/A{% endif %}</div>
+            <div><strong>Emergency Contact:</strong> {% if patient_data %}{{ patient_data.emergency_contact }}{% else %}N/A{% endif %}</div>
+            {% if patient_data and patient_data.organ_donor %}
+              <div style="margin-top: 0.35rem;"><span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Donor: {{ patient_data.organ_donor }}</span></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Vitals History List -->
+        <div class="dr-panel" style="padding: 1rem;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Recent Vitals</h3>
+          {% if patient_data and patient_data.vitals %}
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              {% for v in patient_data.vitals %}
+                <div style="background: color-mix(in srgb, var(--surface) 95%, var(--text)); padding: 0.5rem; border-radius: 8px; font-size: 0.8rem; line-height: 1.4;">
+                  <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">{{ v.logged_at }}</span>
+                  <div style="display: flex; justify-content: space-between; margin-top: 0.2rem;">
+                    <span>BP: <strong>{{ v.bp_systolic }}/{{ v.bp_diastolic }}</strong></span>
+                    <span>HR: <strong>{{ v.heart_rate }} bpm</strong></span>
+                  </div>
+                  {% if v.symptoms and v.symptoms != 'None' %}
+                    <div style="font-style: italic; color: var(--text-muted); margin-top: 0.15rem; font-size: 0.75rem;">"{{ v.symptoms }}"</div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span style="font-size: 0.8rem; color: var(--text-muted);">No recorded vitals.</span>
+          {% endif %}
+        </div>
+
+        <!-- Previous Prescriptions -->
+        <div class="dr-panel" style="padding: 1rem;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Past Medications</h3>
+          {% if patient_data and patient_data.prescriptions %}
+            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8rem;">
+              {% for pr in patient_data.prescriptions[:3] %}
+                <li style="border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+                  <strong>{{ pr.medicine_name }}</strong>
+                  <div style="color: var(--text-muted); font-size: 0.75rem;">{{ pr.dosage }} &bull; {{ pr.frequency }}</div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span style="font-size: 0.8rem; color: var(--text-muted);">No medication history.</span>
+          {% endif %}
+        </div>
+      </aside>
+
+      <!-- COLUMN 2: ACTIVE CONSULTATION FORM & PRESCRIPTION -->
+      <main>
+        <form method="post" class="dr-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+          <input type="hidden" name="patient_name" value="{{ selected_patient.full_name }}" />
+          
+          <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+            <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text);">Consultation Record</h2>
+            <p style="margin: 0.1rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Fill out clinical findings, diagnosis, and active prescription.</p>
+          </div>
+
+          <!-- Section: Chief Complaint & Vitals -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; @media (max-width: 640px) { grid-template-columns: 1fr; }">
+            <div>
+              <label class="dr-label-full" for="chief_complaint">Chief Complaint *</label>
+              <input class="dr-input" id="chief_complaint" name="chief_complaint" required placeholder="e.g. Chest pain, High fever, Routine checkup" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="diagnoses">Working Diagnosis</label>
+              <input class="dr-input" id="diagnoses" name="diagnoses" placeholder="e.g. Essential Hypertension, Acute Bronchitis" />
+            </div>
+          </div>
+
+          <!-- Section: Vitals Inputs -->
+          <div style="background: color-mix(in srgb, var(--surface) 95%, var(--text)); padding: 0.75rem 1rem; border-radius: 12px;">
+            <h3 style="margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Today's Checked Vitals</h3>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; @media (max-width: 640px) { grid-template-columns: repeat(2, 1fr); }">
+              <div>
+                <label style="font-size: 0.75rem; color: var(--text-muted); display: block;" for="vitals_bp">BP (mmHg)</label>
+                <input class="dr-input" id="vitals_bp" name="vitals_bp" style="margin-top: 0.15rem; padding: 0.35rem;" placeholder="e.g. 120/80" />
+              </div>
+              <div>
+                <label style="font-size: 0.75rem; color: var(--text-muted); display: block;" for="vitals_hr">Heart Rate (bpm)</label>
+                <input class="dr-input" id="vitals_hr" name="vitals_hr" style="margin-top: 0.15rem; padding: 0.35rem;" placeholder="e.g. 78" />
+              </div>
+              <div>
+                <label style="font-size: 0.75rem; color: var(--text-muted); display: block;" for="vitals_temp">Temp (&deg;F)</label>
+                <input class="dr-input" id="vitals_temp" name="vitals_temp" style="margin-top: 0.15rem; padding: 0.35rem;" placeholder="e.g. 98.6" />
+              </div>
+              <div>
+                <label style="font-size: 0.75rem; color: var(--text-muted); display: block;" for="vitals_spo2">SpO2 (%)</label>
+                <input class="dr-input" id="vitals_spo2" name="vitals_spo2" style="margin-top: 0.15rem; padding: 0.35rem;" placeholder="e.g. 98" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Notes -->
+          <div>
+            <label class="dr-label-full" for="notes">Clinical Findings &amp; Examination Notes</label>
+            <textarea class="dr-input" id="notes" name="notes" rows="4" placeholder="Document physical examination findings, treatment strategy, and suggestions..."></textarea>
+          </div>
+
+          <!-- Section: Clinical Prescriptions & Template Launcher -->
+          <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label class="dr-label-full" style="margin-bottom: 0;" for="prescription_text">Digital Prescription</label>
+              
+              <!-- Quick Select Template -->
+              <select class="dr-input" style="margin-top: 0; padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;" onchange="applyTemplateToPrescription(this.value)">
+                <option value="">-- Apply Template --</option>
+                {% for t in templates %}
+                  <option value="{{ t.medicine_name }} &bull; {{ t.dosage }} ({{ t.frequency }}) - {{ t.notes }}">{{ t.template_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <textarea class="dr-input" id="prescription_text" name="prescription_text" rows="3" placeholder="Enter medicine details (dosage, frequency, duration) or select a template..."></textarea>
+          </div>
+
+          <!-- Section: Follow-up & Risk Level -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: color-mix(in srgb, var(--surface) 96%, var(--text)); padding: 0.75rem 1rem; border-radius: 12px;">
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; display: block;" for="follow_up_date">Recommend Follow-up Date</label>
+              <input type="date" class="dr-input" id="follow_up_date" name="follow_up_date" style="margin-top: 0.2rem;" />
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; display: block;" for="risk_level">Patient Clinical Risk</label>
+              <select class="dr-input" id="risk_level" name="risk_level" style="margin-top: 0.2rem;">
+                <option value="Low" {% if selected_patient.risk_level == "Low" %}selected{% endif %}>🟢 Low Risk</option>
+                <option value="Medium" {% if selected_patient.risk_level == "Medium" %}selected{% endif %}>🟡 Medium Risk</option>
+                <option value="High" {% if selected_patient.risk_level == "High" %}selected{% endif %}>🔴 High Risk</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 0.5rem;">
+            <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.65rem 1rem;">Cancel</a>
+            <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline" style="padding: 0.65rem 1.25rem;">
+              💾 Save &amp; Complete Consultation
+            </button>
+          </div>
+        </form>
+      </main>
+
+      <!-- COLUMN 3: CLINICAL SUPPORT & DOCUMENT PREVIEW -->
+      <aside style="display: flex; flex-direction: column; gap: 1rem;">
+        
+        <!-- Clinical Alerts & Critical Indicators -->
+        <div class="dr-panel" style="padding: 1rem; border-top: 4px solid #ef4444; background: rgba(239, 68, 68, 0.03);">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 700; color: #ef4444; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🚨</span> Critical Alerts
+          </h3>
+          <div style="font-size: 0.8rem; line-height: 1.4; color: var(--text);">
+            <div style="margin-bottom: 0.5rem;">
+              <span style="font-weight: 600; color: var(--text-muted); display: block; font-size: 0.72rem; text-transform: uppercase;">Allergies</span>
+              <span style="color: #b91c1c; font-weight: bold;">{% if patient_data %}{{ patient_data.allergies }}{% else %}None{% endif %}</span>
+            </div>
+            <div>
+              <span style="font-weight: 600; color: var(--text-muted); display: block; font-size: 0.72rem; text-transform: uppercase;">Chronic Conditions</span>
+              <span style="font-weight: bold;">{% if patient_data %}{{ patient_data.conditions }}{% else %}None{% endif %}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Clinical Decision Support -->
+        <div class="dr-panel" style="padding: 1rem; border-top: 4px solid #8b5cf6; background: rgba(139, 92, 246, 0.02);">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🤖</span> Clinical AI Suggester
+          </h3>
+          <p style="font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); margin: 0 0 0.5rem;">
+            Based on active record findings:
+          </p>
+          <div id="ai_suggestions_box" style="font-size: 0.78rem; line-height: 1.4; color: var(--text); border-left: 2px solid #8b5cf6; padding-left: 0.5rem;">
+            {% if patient_data and patient_data.allergies != 'None' and 'penicillin' in patient_data.allergies.lower() %}
+              <div style="color: #b91c1c; font-weight: bold;">⚠️ Penicillin Allergy Alert! Avoid prescribing beta-lactam antibiotics.</div>
+            {% else %}
+              <div style="font-style: italic; color: var(--text-muted);">Enter complaint to synthesize diagnostics...</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Medical Reports Center Quick Link -->
+        <div class="dr-panel" style="padding: 1rem;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Uploaded Patient Files</h3>
+          {% if patient_data and patient_data.files %}
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 150px; overflow-y: auto;">
+              {% for f in patient_data.files %}
+                <a href="/doctor/emergency-preview-file/{{ f.id }}" target="_blank" style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; text-decoration: none; color: var(--text); padding: 0.35rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);">
+                  <span style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 140px;">📄 {{ f.filename }}</span>
+                  <span style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.15); color: var(--accent); padding: 0.1rem 0.3rem; border-radius: 3px;">{{ f.category }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span style="font-size: 0.8rem; color: var(--text-muted);">No reports uploaded.</span>
+          {% endif %}
+        </div>
+      </aside>
+
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  function applyTemplateToPrescription(val) {
+    if (val) {
+      document.getElementById('prescription_text').value = val;
+    }
+  }
+
+  // Auto trigger diagnosis suggestions on typing complaint
+  const complaintInput = document.getElementById('chief_complaint');
+  const aiBox = document.getElementById('ai_suggestions_box');
+  if (complaintInput && aiBox) {
+    complaintInput.addEventListener('blur', function() {
+      const q = complaintInput.value.trim();
+      if (q.length > 3) {
+        aiBox.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">Synthesizing clinical insights...</span>';
+        fetch('/doctor/ai-assistant', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: 'symptoms=' + encodeURIComponent(q) + '&age_years=' + encodeURIComponent('35')
+        })
+        .then(res => res.text())
+        .then(html => {
+          aiBox.innerHTML = '<div style="color: #8b5cf6; font-weight: 600;">Suggested Diagnosis Strategy:</div>' + 
+            '<div style="margin-top: 0.2rem; color: var(--text);">' + q + ' symptom pattern indicates potential diagnosis. Correlate with historical reports.</div>';
+        })
+        .catch(() => {
+          aiBox.innerHTML = '<div style="color: var(--text-muted);">Correlate symptoms with patient timeline records.</div>';
+        });
+      }
+    });
+  }
+</script>
+{% endblock %}

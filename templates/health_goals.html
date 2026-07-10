@@ -1,0 +1,399 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <style>
+    .goals-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .goals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .goal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.25rem;
+    }
+    .goal-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.05);
+    }
+    .progress-circle-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem 0;
+    }
+    .circular-progress-large {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+    .circular-progress-large svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .circular-progress-large circle {
+      fill: none;
+      stroke-width: 8;
+    }
+    .circular-progress-large .bg-circle {
+      stroke: var(--border);
+    }
+    .circular-progress-large .val-circle {
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .circular-progress-large .center-text-large {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .circular-progress-large .center-val {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text);
+      display: block;
+      line-height: 1;
+    }
+    .circular-progress-large .center-unit {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 2px;
+      display: block;
+    }
+    .goal-quick-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .quick-btn {
+      flex: 1;
+      min-width: 60px;
+      padding: 0.6rem;
+      border: 1px solid var(--border);
+      background: rgba(var(--accent-rgb), 0.03);
+      color: var(--text);
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .quick-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .log-input-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .log-input {
+      flex-grow: 1;
+      padding: 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .log-btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .log-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(var(--accent-rgb), 0.2);
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+    }
+    .history-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 2px solid var(--border);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .history-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+  </style>
+
+  <div class="goals-container pd-wrap">
+    <div>
+      <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+      <h1 class="pd-page-title" style="margin-top: 0.5rem;">❤️ Health Goals &amp; Tracking</h1>
+      <p class="pd-page-lead">Track your daily water intake, step count, and sleep cycles. Updates sync directly to your clinical vitals dashboard.</p>
+    </div>
+
+    <!-- Overall Progress Banner -->
+    <div class="compliance-progress-box" style="background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(16, 185, 129, 0.08) 100%); border: 1px solid rgba(var(--accent-rgb), 0.15); border-radius: 20px; padding: 1.5rem; margin-top: 1.5rem; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.02);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h3 class="compliance-progress-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text);">Overall Goals Completion</h3>
+        <strong style="color: var(--accent); font-size: 1.4rem; font-weight: 800;">{{ overall_progress }}% Completed</strong>
+      </div>
+      <div class="compliance-bar-outer" style="height: 12px; background: rgba(0,0,0,0.05); border-radius: 6px; overflow: hidden;">
+        <div class="compliance-bar-inner" style="height: 100%; width: {{ overall_progress }}%; background: linear-gradient(90deg, var(--accent) 0%, #10b981 100%); border-radius: 6px; transition: width 0.8s ease;"></div>
+      </div>
+      <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
+        Log details daily to maintain consistency. Consistent healthy habits improve your AI Health Score.
+      </p>
+    </div>
+
+    <div class="goals-grid">
+      <!-- Water Intake Card -->
+      <div class="goal-card">
+        <div>
+          <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+            💧 Water Intake
+          </h2>
+          <p style="margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Recommended Target: {{ "%.1f"|format(water_target) }} L / day</p>
+        </div>
+
+        <div class="progress-circle-wrap">
+          <div class="circular-progress-large" id="circle-water">
+            <svg>
+              <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+              <circle class="val-circle" cx="70" cy="70" r="60" stroke="var(--accent)" stroke-dasharray="377" stroke-dashoffset="{{ 377 - (377 * water_pct / 100) }}"></circle>
+            </svg>
+            <div class="center-text-large">
+              <span class="center-val" id="val-water-text">{{ "%.2f"|format(water_logged) }}</span>
+              <span class="center-unit">Liters</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Quick Add Water</span>
+          <div class="goal-quick-actions">
+            <button onclick="quickAddWater(0.25)" class="quick-btn">+250ml</button>
+            <button onclick="quickAddWater(0.5)" class="quick-btn">+500ml</button>
+            <button onclick="quickAddWater(1.0)" class="quick-btn">+1.0L</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps Tracker Card -->
+      <div class="goal-card">
+        <div>
+          <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+            🏃 Steps &amp; Exercise
+          </h2>
+          <p style="margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Recommended Target: 10,000 steps / day</p>
+        </div>
+
+        <div class="progress-circle-wrap">
+          <div class="circular-progress-large" id="circle-steps">
+            <svg>
+              <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+              <circle class="val-circle" cx="70" cy="70" r="60" stroke="#10b981" stroke-dasharray="377" stroke-dashoffset="{{ 377 - (377 * steps_pct / 100) }}"></circle>
+            </svg>
+            <div class="center-text-large">
+              <span class="center-val" id="val-steps-text">{{ steps_logged }}</span>
+              <span class="center-unit">Steps</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Log Today's Steps</span>
+          <div class="log-input-group">
+            <input type="number" id="steps-input" class="log-input" placeholder="e.g. 8450" value="{{ steps_logged or '' }}" />
+            <button onclick="logSteps()" class="log-btn" style="background: #10b981;">Log</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sleep Tracker Card -->
+      <div class="goal-card">
+        <div>
+          <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+            😴 Sleep Cycles
+          </h2>
+          <p style="margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Recommended Target: {{ "%.1f"|format(sleep_target) }} hours / day</p>
+        </div>
+
+        <div class="progress-circle-wrap">
+          <div class="circular-progress-large" id="circle-sleep">
+            <svg>
+              <circle class="bg-circle" cx="70" cy="70" r="60"></circle>
+              <circle class="val-circle" cx="70" cy="70" r="60" stroke="#8b5cf6" stroke-dasharray="377" stroke-dashoffset="{{ 377 - (377 * sleep_pct / 100) }}"></circle>
+            </svg>
+            <div class="center-text-large">
+              <span class="center-val" id="val-sleep-text">{{ "%.1f"|format(sleep_logged) }}</span>
+              <span class="center-unit">Hours</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Log Sleep Hours</span>
+          <div class="log-input-group">
+            <input type="number" step="0.5" id="sleep-input" class="log-input" placeholder="e.g. 7.5" value="{{ sleep_logged or '' }}" />
+            <button onclick="logSleep()" class="log-btn" style="background: #8b5cf6;">Log</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goals History Table -->
+    <div class="pd-panel" style="margin-top: 2rem; background: var(--surface); padding: 1.75rem; border-radius: 20px; border: 1px solid var(--border);">
+      <h3 class="dr-side-title" style="margin-bottom: 0.5rem;">Goal Tracking History (Last 7 Days)</h3>
+      <p class="dr-hint" style="margin-bottom: 1.25rem;">View how your water intake, step counts, and sleep logs trended over the past week.</p>
+      
+      {% if history %}
+        <div style="overflow-x: auto;">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Logged At</th>
+                <th>Water Intake</th>
+                <th>Steps Count</th>
+                <th>Sleep Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in history %}
+                <tr>
+                  <td style="font-weight: 600;">{{ entry.logged_at[:10] if entry.logged_at else 'Unknown' }}</td>
+                  <td>{{ "%.2f"|format(entry.water_intake) if entry.water_intake is not None else '0.00' }} L</td>
+                  <td>{{ entry.steps if entry.steps is not None else '0' }} steps</td>
+                  <td>{{ "%.1f"|format(entry.sleep_hours) if entry.sleep_hours is not None else '0.0' }} hours</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 2rem 0;">No goal logs recorded yet.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <script>
+    // Variables holding today's logs for merging
+    const todayLog = {
+      logged_at: '{{ today_log.logged_at or "" }}',
+      bp_systolic: '{{ today_log.bp_systolic or "" }}',
+      bp_diastolic: '{{ today_log.bp_diastolic or "" }}',
+      sugar: '{{ today_log.sugar or "" }}',
+      heart_rate: '{{ today_log.heart_rate or "" }}',
+      spo2: '{{ today_log.spo2 or "" }}',
+      temperature: '{{ today_log.temperature or "" }}',
+      bmi: '{{ today_log.bmi or "" }}',
+      cholesterol: '{{ today_log.cholesterol or "" }}',
+      water_intake: parseFloat('{{ today_log.water_intake or 0.0 }}'),
+      steps: parseInt('{{ today_log.steps or 0 }}'),
+      sleep_hours: parseFloat('{{ today_log.sleep_hours or 0.0 }}'),
+      notes: '{{ today_log.symptoms or "" }}',
+      update: '{{ logged_today|tojson }}' === 'true'
+    };
+
+    async function saveVitals(updatedFields) {
+      // Merge changes into todayLog
+      Object.assign(todayLog, updatedFields);
+      
+      const payload = {
+        logged_at: todayLog.logged_at || new Date().toISOString().slice(0, 16),
+        bp_systolic: todayLog.bp_systolic,
+        bp_diastolic: todayLog.bp_diastolic,
+        sugar: todayLog.sugar,
+        heart_rate: todayLog.heart_rate,
+        spo2: todayLog.spo2,
+        temperature: todayLog.temperature,
+        bmi: todayLog.bmi,
+        cholesterol: todayLog.cholesterol,
+        water_intake: todayLog.water_intake,
+        steps: todayLog.steps,
+        sleep_hours: todayLog.sleep_hours,
+        notes: todayLog.notes,
+        update: todayLog.update
+      };
+
+      try {
+        const response = await fetch("{{ url_for('core.health_vitals') }}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const res = await response.json();
+          if (res.status === 'success' || res.status === 'duplicate') {
+            window.location.reload();
+          } else if (res.status === 'duplicate') {
+            // Re-submit with update confirmation
+            payload.update = true;
+            const retryResp = await fetch("{{ url_for('core.health_vitals') }}", {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+              },
+              body: JSON.stringify(payload)
+            });
+            if (retryResp.ok) window.location.reload();
+          } else {
+            console.error("Failed to save goals:", res);
+          }
+        }
+      } catch (err) {
+        console.error("Error logging goals:", err);
+      }
+    }
+
+    function quickAddWater(liters) {
+      const current = todayLog.water_intake || 0.0;
+      const updated = current + liters;
+      saveVitals({ water_intake: updated });
+    }
+
+    function logSteps() {
+      const steps = parseInt(document.getElementById('steps-input').value || 0);
+      if (steps < 0) return alert("Steps cannot be negative");
+      saveVitals({ steps: steps });
+    }
+
+    function logSleep() {
+      const hours = parseFloat(document.getElementById('sleep-input').value || 0.0);
+      if (hours < 0 || hours > 24) return alert("Please enter a valid sleep duration (0-24 hours)");
+      saveVitals({ sleep_hours: hours });
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <div>
+        <h1 class="pd-page-title" style="margin-bottom: 0.25rem;">Favorite Doctors</h1>
+        <p class="pd-page-lead" style="margin-bottom: 0;">Access profile quick links, book instant sessions, and manage your preferred healthcare providers.</p>
+      </div>
+      <a href="{{ url_for('core.book_appointment') }}" class="pd-btn-primary" style="text-decoration: none;">
+        Book New Session
+      </a>
+    </div>
+    
+    {% if doctors %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        {% for doc in doctors %}
+          <div class="pd-panel" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
+                  MD
+                </div>
+                <div>
+                  <h3 style="margin: 0; color: var(--text); font-size: 1.15rem; font-weight: 700;">{{ doc.name }}</h3>
+                  <span style="font-size: 0.85rem; color: var(--accent); font-weight: 600; display: block; margin-top: 0.15rem;">
+                    {{ doc.specialization or 'General Practitioner' }}
+                  </span>
+                </div>
+              </div>
+              
+              <div style="font-size: 0.875rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <div>📞 Contact: {{ doc.contact or 'N/A' }}</div>
+                <div>🏢 Clinic: MedVault Health System</div>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
+              <a href="{{ url_for('core.book_appointment') }}?doctor_name={{ doc.name }}" class="pd-btn-primary pd-btn-sm" style="flex-grow: 1; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                📅 Book Appointment
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="pd-empty-state">
+        <div class="pd-empty-state-icon">🩺</div>
+        <div class="pd-empty-state-title">No Favorite Doctors Saved</div>
+        <div class="pd-empty-state-desc">You haven't saved any preferred healthcare providers. Search and add your doctors to enable quick booking.</div>
+        <a href="{{ url_for('core.book_appointment') }}" class="pd-btn-primary" style="text-decoration: none;">Find & Book a Doctor</a>
+      </div>
+    {% endif %}
+    
+    <!-- Inline tool to add doctor to list -->
+    <div class="pd-panel" style="margin-top: 2rem;">
+      <h3 class="dr-side-title" style="margin-bottom: 1rem;">Add Preferred Doctor</h3>
+      <form method="post" action="{{ url_for('modules.add_doctor') }}" class="dr-p-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div>
+          <label class="dr-hint">Doctor's Name</label>
+          <input class="dr-input" name="name" placeholder="e.g. Dr. Amanda Smith" required />
+        </div>
+        <div>
+          <label class="dr-hint">Specialization</label>
+          <input class="dr-input" name="specialization" placeholder="e.g. Cardiology" />
+        </div>
+        <div>
+          <label class="dr-hint">Contact / Email</label>
+          <input class="dr-input" name="contact" placeholder="e.g. phone or email" />
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button class="pd-btn-primary pd-btn-full" type="submit">Save Doctor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

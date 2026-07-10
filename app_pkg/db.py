@@ -43,6 +43,14 @@ class PgCursor:
                 sql = f"SELECT column_name AS name FROM information_schema.columns WHERE table_name = '{table_name}'"
                 params = None
 
+        # Intercept and translate SQLite strftime/unixepoch pattern to Postgres
+        sql = re.sub(
+            r"strftime\(\s*'%Y-%m'\s*,\s*datetime\(\s*(\w+)\s*,\s*'unixepoch'\s*\)\s*\)",
+            r"to_char(to_timestamp(\1), 'YYYY-MM')",
+            sql,
+            flags=re.IGNORECASE
+        )
+
         # Replace SQLite style '?' with PostgreSQL style '%s'
         if params is not None:
             sql = sql.replace('?', '%s')
@@ -164,6 +172,45 @@ def init_db() -> None:
 
 
 def _run_safe_migrations(db) -> None:
+    try:
+        schema_row = db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
+        if schema_row and "UNIQUE(username, portal_role)" not in schema_row["sql"] and "UNIQUE (username, portal_role)" not in schema_row["sql"]:
+            db.execute("ALTER TABLE users RENAME TO users_old")
+            db.execute("""
+                CREATE TABLE users (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  username TEXT NOT NULL,
+                  password_hash TEXT NOT NULL,
+                  full_name TEXT NOT NULL DEFAULT '',
+                  blood_group TEXT NOT NULL DEFAULT '',
+                  allergies TEXT NOT NULL DEFAULT '',
+                  medications TEXT NOT NULL DEFAULT '',
+                  conditions TEXT NOT NULL DEFAULT '',
+                  onboarding_done INTEGER NOT NULL DEFAULT 0,
+                  portal_role TEXT NOT NULL DEFAULT 'patient',
+                  theme_accent TEXT NOT NULL DEFAULT '#3b82f6',
+                  theme_mode TEXT NOT NULL DEFAULT 'light',
+                  doctor_specialty TEXT NOT NULL DEFAULT '',
+                  doctor_phone TEXT NOT NULL DEFAULT '',
+                  doctor_clinic TEXT NOT NULL DEFAULT '',
+                  doctor_bio TEXT NOT NULL DEFAULT '',
+                  UNIQUE(username, portal_role)
+                )
+            """)
+            old_cols = [row["name"] for row in db.execute("PRAGMA table_info(users_old)").fetchall()]
+            new_cols = [
+                "id", "username", "password_hash", "full_name", "blood_group", 
+                "allergies", "medications", "conditions", "onboarding_done", 
+                "portal_role", "theme_accent", "theme_mode", "doctor_specialty", 
+                "doctor_phone", "doctor_clinic", "doctor_bio"
+            ]
+            common_cols = [c for c in new_cols if c in old_cols]
+            cols_str = ", ".join(common_cols)
+            db.execute(f"INSERT INTO users ({cols_str}) SELECT {cols_str} FROM users_old")
+            db.execute("DROP TABLE users_old")
+    except Exception:
+        pass
+
     user_cols = {row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()}
     if "onboarding_done" not in user_cols:
         db.execute("ALTER TABLE users ADD COLUMN onboarding_done INTEGER NOT NULL DEFAULT 0")
@@ -180,6 +227,55 @@ def _run_safe_migrations(db) -> None:
         db.execute("ALTER TABLE files ADD COLUMN doc_source TEXT NOT NULL DEFAULT ''")
     if "extracted_text" not in cols:
         db.execute("ALTER TABLE files ADD COLUMN extracted_text TEXT NOT NULL DEFAULT ''")
+    if "file_size" not in cols:
+        db.execute("ALTER TABLE files ADD COLUMN file_size INTEGER")
+    if "file_type" not in cols:
+        db.execute("ALTER TABLE files ADD COLUMN file_type TEXT")
+    if "uploaded_by" not in cols:
+        db.execute("ALTER TABLE files ADD COLUMN uploaded_by TEXT DEFAULT 'Patient'")
+    if "ai_summary" not in cols:
+        db.execute("ALTER TABLE files ADD COLUMN ai_summary TEXT DEFAULT ''")
+
+    # Migrate reminders table
+    rem_cols = {row["name"] for row in db.execute("PRAGMA table_info(reminders)").fetchall()}
+    if "dosage" not in rem_cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN dosage TEXT DEFAULT ''")
+    if "instructions" not in rem_cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN instructions TEXT DEFAULT ''")
+    if "med_image" not in rem_cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN med_image TEXT DEFAULT ''")
+    if "snooze_until" not in rem_cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN snooze_until TEXT DEFAULT NULL")
+    if "follow_up_sent" not in rem_cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN follow_up_sent INTEGER DEFAULT 0")
+    if "repeat_enabled" not in rem_cols:
+        db.execute("ALTER TABLE reminders ADD COLUMN repeat_enabled INTEGER DEFAULT 0")
+
+    # Create patient_notifications and medicine_history
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS patient_notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          category TEXT NOT NULL,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          is_read INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS medicine_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          reminder_id INTEGER,
+          medicine_name TEXT NOT NULL,
+          dosage TEXT NOT NULL,
+          taken_at INTEGER NOT NULL,
+          instructions TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'taken',
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_patient_notifications_user ON patient_notifications(user_id);
+    """)
 
     user_cols = {row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()}
     if "portal_role" not in user_cols:
@@ -198,6 +294,21 @@ def _run_safe_migrations(db) -> None:
         db.execute("ALTER TABLE users ADD COLUMN doctor_bio TEXT NOT NULL DEFAULT ''")
 
     _ensure_doctor_tables(db)
+    _ensure_patient_tables(db)
+
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS emergency_access_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          doctor_name TEXT NOT NULL DEFAULT '',
+          patient_user_id INTEGER NOT NULL,
+          accessed_at INTEGER NOT NULL,
+          reason TEXT NOT NULL DEFAULT '',
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id),
+          FOREIGN KEY (patient_user_id) REFERENCES users(id)
+        );
+    """)
+
 
 
 def _ensure_doctor_tables(db) -> None:
@@ -258,9 +369,111 @@ def _ensure_doctor_tables(db) -> None:
           read_at INTEGER,
           FOREIGN KEY (doctor_user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS doctor_profiles (
+          user_id INTEGER PRIMARY KEY,
+          full_name TEXT NOT NULL DEFAULT '',
+          profile_photo TEXT NOT NULL DEFAULT '',
+          gender TEXT NOT NULL DEFAULT '',
+          dob TEXT NOT NULL DEFAULT '',
+          phone TEXT NOT NULL DEFAULT '',
+          email TEXT NOT NULL DEFAULT '',
+          address TEXT NOT NULL DEFAULT '',
+          city TEXT NOT NULL DEFAULT '',
+          state TEXT NOT NULL DEFAULT '',
+          country TEXT NOT NULL DEFAULT '',
+          specialty TEXT NOT NULL DEFAULT '',
+          sub_specialty TEXT NOT NULL DEFAULT '',
+          registration_number TEXT NOT NULL DEFAULT '',
+          medical_council TEXT NOT NULL DEFAULT '',
+          years_experience INTEGER NOT NULL DEFAULT 0,
+          highest_qualification TEXT NOT NULL DEFAULT '',
+          college_university TEXT NOT NULL DEFAULT '',
+          hospital_clinic TEXT NOT NULL DEFAULT '',
+          position TEXT NOT NULL DEFAULT '',
+          consultation_fee REAL NOT NULL DEFAULT 0.0,
+          languages_spoken TEXT NOT NULL DEFAULT '',
+          working_days TEXT NOT NULL DEFAULT '',
+          consultation_hours TEXT NOT NULL DEFAULT '',
+          timezone TEXT NOT NULL DEFAULT '',
+          online_consultation INTEGER NOT NULL DEFAULT 0,
+          offline_consultation INTEGER NOT NULL DEFAULT 0,
+          bio TEXT NOT NULL DEFAULT '',
+          expertise TEXT NOT NULL DEFAULT '',
+          certifications TEXT NOT NULL DEFAULT '',
+          awards TEXT NOT NULL DEFAULT '',
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS doctor_leaves (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          reason TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS prescription_templates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          template_name TEXT NOT NULL,
+          medicine_name TEXT NOT NULL,
+          dosage TEXT NOT NULL DEFAULT '',
+          frequency TEXT NOT NULL DEFAULT '',
+          duration_days INTEGER NOT NULL DEFAULT 0,
+          notes TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS doctor_patient_notes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          patient_name TEXT NOT NULL,
+          notes TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS doctor_reminders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          patient_name TEXT NOT NULL,
+          title TEXT NOT NULL,
+          remind_at TEXT NOT NULL,
+          is_done INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS doctor_activity_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          activity_type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS doctor_payments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doctor_user_id INTEGER NOT NULL,
+          patient_name TEXT NOT NULL,
+          appointment_id INTEGER,
+          visit_ts INTEGER NOT NULL,
+          consultation_fee REAL NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Pending',
+          payment_method TEXT,
+          transaction_id TEXT,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (doctor_user_id) REFERENCES users(id)
+        );
         """
     )
     _migrate_doctor_prescriptions(db)
+    _migrate_doctor_appointments(db)
+    _migrate_doctor_patients_and_consultations(db)
+
+
+def _migrate_doctor_appointments(db) -> None:
+    cols = {row["name"] for row in db.execute("PRAGMA table_info(doctor_appointments)").fetchall()}
+    if cols and "duration_minutes" not in cols:
+        db.execute("ALTER TABLE doctor_appointments ADD COLUMN duration_minutes INTEGER DEFAULT 30")
 
 
 def _migrate_doctor_prescriptions(db) -> None:
@@ -269,3 +482,105 @@ def _migrate_doctor_prescriptions(db) -> None:
         db.execute("ALTER TABLE doctor_prescriptions ADD COLUMN duration_days INTEGER NOT NULL DEFAULT 0")
     if cols and "sent_to_patient" not in cols:
         db.execute("ALTER TABLE doctor_prescriptions ADD COLUMN sent_to_patient INTEGER NOT NULL DEFAULT 0")
+
+
+def _migrate_doctor_patients_and_consultations(db) -> None:
+    # 1. doctor_patients migrations
+    cols_pts = {row["name"] for row in db.execute("PRAGMA table_info(doctor_patients)").fetchall()}
+    if cols_pts:
+        if "risk_level" not in cols_pts:
+            db.execute("ALTER TABLE doctor_patients ADD COLUMN risk_level TEXT NOT NULL DEFAULT 'Low'")
+        if "last_visit" not in cols_pts:
+            db.execute("ALTER TABLE doctor_patients ADD COLUMN last_visit TEXT")
+        if "follow_up_status" not in cols_pts:
+            db.execute("ALTER TABLE doctor_patients ADD COLUMN follow_up_status TEXT NOT NULL DEFAULT 'None'")
+            
+    # 2. doctor_consultations migrations
+    cols_cons = {row["name"] for row in db.execute("PRAGMA table_info(doctor_consultations)").fetchall()}
+    if cols_cons:
+        if "vitals_bp" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN vitals_bp TEXT")
+        if "vitals_hr" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN vitals_hr TEXT")
+        if "vitals_temp" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN vitals_temp TEXT")
+        if "vitals_spo2" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN vitals_spo2 TEXT")
+        if "diagnoses" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN diagnoses TEXT")
+        if "follow_up_date" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN follow_up_date TEXT")
+        if "prescription_text" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN prescription_text TEXT")
+        if "risk_level" not in cols_cons:
+            db.execute("ALTER TABLE doctor_consultations ADD COLUMN risk_level TEXT NOT NULL DEFAULT 'Low'")
+
+    # 3. patient_profiles migrations (organ donor & profile photo)
+    cols_prof = {row["name"] for row in db.execute("PRAGMA table_info(patient_profiles)").fetchall()}
+    if cols_prof:
+        if "organ_donor" not in cols_prof:
+            db.execute("ALTER TABLE patient_profiles ADD COLUMN organ_donor TEXT NOT NULL DEFAULT 'Not Specified'")
+        if "profile_photo" not in cols_prof:
+            db.execute("ALTER TABLE patient_profiles ADD COLUMN profile_photo TEXT NOT NULL DEFAULT ''")
+
+
+
+def _ensure_patient_tables(db) -> None:
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS patient_profiles (
+          user_id INTEGER PRIMARY KEY,
+          full_name TEXT NOT NULL DEFAULT '',
+          profile_photo TEXT NOT NULL DEFAULT '',
+          age INTEGER NOT NULL DEFAULT 0,
+          gender TEXT NOT NULL DEFAULT '',
+          dob TEXT NOT NULL DEFAULT '',
+          blood_group TEXT NOT NULL DEFAULT '',
+          height REAL NOT NULL DEFAULT 0.0,
+          weight REAL NOT NULL DEFAULT 0.0,
+          phone TEXT NOT NULL DEFAULT '',
+          email TEXT NOT NULL DEFAULT '',
+          address TEXT NOT NULL DEFAULT '',
+          emergency_contact_name TEXT NOT NULL DEFAULT '',
+          emergency_contact_number TEXT NOT NULL DEFAULT '',
+          existing_diseases TEXT NOT NULL DEFAULT '',
+          current_medications TEXT NOT NULL DEFAULT '',
+          allergies TEXT NOT NULL DEFAULT '',
+          previous_surgeries TEXT NOT NULL DEFAULT '',
+          family_medical_history TEXT NOT NULL DEFAULT '',
+          smoking_status TEXT NOT NULL DEFAULT '',
+          alcohol_consumption TEXT NOT NULL DEFAULT '',
+          exercise_frequency TEXT NOT NULL DEFAULT '',
+          sleep_duration REAL NOT NULL DEFAULT 0.0,
+          diet_preference TEXT NOT NULL DEFAULT '',
+          water_intake REAL NOT NULL DEFAULT 0.0,
+          occupation TEXT NOT NULL DEFAULT '',
+          preferred_language TEXT NOT NULL DEFAULT '',
+          preferred_consultation_mode TEXT NOT NULL DEFAULT '',
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """
+    )
+    _migrate_vitals_logs(db)
+
+
+def _migrate_vitals_logs(db) -> None:
+    cols = {row["name"] for row in db.execute("PRAGMA table_info(vitals_logs)").fetchall()}
+    if cols:
+        if "spo2" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN spo2 INTEGER")
+        if "temperature" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN temperature REAL")
+        if "bmi" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN bmi REAL")
+        if "cholesterol" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN cholesterol REAL")
+        if "water_intake" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN water_intake REAL")
+        if "steps" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN steps INTEGER")
+        if "sleep_hours" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN sleep_hours REAL")
+        if "notes" not in cols:
+            db.execute("ALTER TABLE vitals_logs ADD COLUMN notes TEXT")
+

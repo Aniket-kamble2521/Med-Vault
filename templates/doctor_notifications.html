@@ -1,0 +1,59 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell dr-shell--narrow">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Doctor Notification Center</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Real-time clinical event feeds, uploads, emergency logs, and reminders.</p>
+    </div>
+    
+    {% if alerts %}
+      <form method="post" action="{{ url_for('core.doctor_notifications_list') }}">
+        <button type="submit" class="dr-btn-outline" style="padding: 0.5rem 1rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: rgba(239, 68, 68, 0.05); font-weight: 700;">
+          🗑️ Clear All Alerts
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="dr-panel" style="padding: 1.5rem;">
+    {% if not alerts %}
+      <div style="text-align: center; padding: 3rem 1.5rem;">
+        <span style="font-size: 3rem;">🔔</span>
+        <h3 style="margin: 1rem 0 0.5rem; font-size: 1.25rem; font-weight: 700;">Inbox Fully Addressed</h3>
+        <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">You do not have any new clinical warnings or events at this time.</p>
+      </div>
+    {% else %}
+      <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem;">
+        {% for a in alerts %}
+          <li style="display: flex; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); align-items: flex-start; animation: fadeInUp 0.3s ease;">
+            <span style="font-size: 1.75rem; background: color-mix(in srgb, var(--accent) 10%, transparent); padding: 0.5rem; border-radius: 10px;">
+              {% if "Emergency" in a.message or "access" in a.message or "QR" in a.message %}
+                🚨
+              {% elif "prescribed" in a.message or "Prescription" in a.message %}
+                💊
+              {% elif "uploaded" in a.message or "file" in a.message %}
+                📄
+              {% elif "reminder" in a.message or "follow-up" in a.message %}
+                ⏰
+              {% else %}
+                🔔
+              {% endif %}
+            </span>
+            <div style="flex: 1;">
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--text); line-height: 1.4;">
+                {{ a.message }}
+              </div>
+              <span style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                {{ a.created_at }}
+              </span>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

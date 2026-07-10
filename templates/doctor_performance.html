@@ -3,32 +3,32 @@
 <div class="dr-shell">
   <!-- Header -->
   <div style="margin-bottom: 2rem;">
-    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
-    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Practice Analytics Suite</h1>
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Practice Performance Suite</h1>
     <p class="dr-hint" style="margin: 0.2rem 0 0;">Interactive charts and metric trends generated from clinical portal records.</p>
   </div>
 
   <!-- Key Analytics KPIs -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--accent);">
-      <span style="font-size: 2rem; background: color-mix(in srgb, var(--accent) 15%, transparent); padding: 0.5rem; border-radius: 8px; color: var(--accent);">👥</span>
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--accent); background: var(--surface);">
+      <span style="font-size: 2rem; background: rgba(59, 130, 246, 0.1); padding: 0.5rem; border-radius: 8px; color: var(--accent);">👥</span>
       <div>
         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Total Patients</div>
-        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ chart.total_patients }}</strong>
+        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ total_distinct }}</strong>
       </div>
     </div>
-    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #10b981;">
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #10b981; background: var(--surface);">
       <span style="font-size: 2rem; background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 8px; color: #10b981;">🩺</span>
       <div>
         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Completed Consults</div>
-        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ chart.total_consults }}</strong>
+        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ total_completed }}</strong>
       </div>
     </div>
-    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #8b5cf6;">
-      <span style="font-size: 2rem; background: rgba(139, 92, 246, 0.1); padding: 0.5rem; border-radius: 8px; color: #8b5cf6;">🔄</span>
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #f59e0b; background: var(--surface);">
+      <span style="font-size: 2rem; background: rgba(245, 158, 11, 0.1); padding: 0.5rem; border-radius: 8px; color: #f59e0b;">🔄</span>
       <div>
-        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Patient Retention</div>
-        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ chart.retention_rate }}%</strong>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Cancellation Rate</div>
+        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ cancellation_rate }}%</strong>
       </div>
     </div>
   </div>
@@ -71,25 +71,6 @@
         <canvas id="chart-consult-durations"></canvas>
       </div>
     </section>
-
-    <!-- 5. Top Conditions/Specialties -->
-    <section class="dr-panel dr-chart-panel" style="padding: 1.5rem;">
-      <h2 class="dr-side-title" style="margin-top: 0;">Patient Disease / Symptom Mix</h2>
-      <p class="dr-hint" style="margin-bottom: 1.25rem;">Clinical symptoms / condition mix based on patient complaints.</p>
-      <div style="height: 240px; position: relative;">
-        <canvas id="chart-disease-mix"></canvas>
-      </div>
-    </section>
-
-    <!-- 6. Peak Consultation Hours -->
-    <section class="dr-panel dr-chart-panel" style="padding: 1.5rem;">
-      <h2 class="dr-side-title" style="margin-top: 0;">Peak Consultation Hours</h2>
-      <p class="dr-hint" style="margin-bottom: 1.25rem;">Total consultations processed grouped by hour of the day.</p>
-      <div style="height: 240px; position: relative;">
-        <canvas id="chart-peak-hours"></canvas>
-      </div>
-    </section>
-
   </div>
 </div>
 
@@ -151,16 +132,31 @@
       }
     });
 
-    // 3. Appointment Trends Chart
+    // 3. Appointment Trends
     new Chart(document.getElementById("chart-appt-trends"), {
-      type: "bar",
+      type: "doughnut",
       data: {
         labels: {{ chart.appt_labels | tojson }},
         datasets: [{
-          label: "Appointments count",
           data: {{ chart.appt_values | tojson }},
-          backgroundColor: ["#64748b", "#f59e0b", "#3b82f6", "#10b981", "#ef4444"],
-          borderRadius: 6
+          backgroundColor: ["#3b82f6", "#facc15", "#f97316", "#10b981", "#ef4444"]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "right", labels: { color: text } } }
+      }
+    });
+
+    // 4. Durations Mix
+    new Chart(document.getElementById("chart-consult-durations"), {
+      type: "bar",
+      data: {
+        labels: {{ chart.duration_labels | tojson }},
+        datasets: [{
+          data: {{ chart.duration_values | tojson }},
+          backgroundColor: "#8b5cf6"
         }]
       },
       options: {
@@ -173,76 +169,6 @@
         }
       }
     });
-
-    // 4. Consultation Duration Chart
-    new Chart(document.getElementById("chart-consult-durations"), {
-      type: "doughnut",
-      data: {
-        labels: {{ chart.duration_labels | tojson }},
-        datasets: [{
-          data: {{ chart.duration_values | tojson }},
-          backgroundColor: ["#38bdf8", "#60a5fa", "#818cf8", "#a78bfa", "#c084fc"]
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: "right", labels: { color: text } } }
-      }
-    });
-
-    // 5. Disease Symptom Mix
-    new Chart(document.getElementById("chart-disease-mix"), {
-      type: "doughnut",
-      data: {
-        labels: {{ chart.disease_labels | tojson }},
-        datasets: [{
-          data: {{ chart.disease_values | tojson }},
-          backgroundColor: ["#f43f5e", "#fb923c", "#34d399", "#94a3b8"]
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: "right", labels: { color: text } } }
-      }
-    });
-
-    // 6. Peak Consultation Hours
-    new Chart(document.getElementById("chart-peak-hours"), {
-      type: "line",
-      data: {
-        labels: {{ chart.peak_labels | tojson }},
-        datasets: [{
-          label: "Visits processed",
-          data: {{ chart.peak_values | tojson }},
-          borderColor: "#8b5cf6",
-          backgroundColor: "rgba(139, 92, 246, 0.15)",
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointRadius: 4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: text }, grid: { color: grid } },
-          y: { beginAtZero: true, ticks: { color: text, stepSize: 1 }, grid: { color: grid } }
-        }
-      }
-    });
-
   })();
 </script>
-
-<style>
-  @media (max-width: 768px) {
-    div[style*="grid-template-columns"] {
-      grid-template-columns: 1fr !important;
-    }
-  }
-</style>
 {% endblock %}

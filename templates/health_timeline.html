@@ -1,0 +1,32 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <h1 class="pd-page-title">Medical Health Timeline</h1>
+    <p class="pd-page-lead">A chronological feed of appointments, prescriptions, vaccinations, medical reports, and health logs.</p>
+    
+    {% if timeline %}
+      <div class="pd-timeline">
+        {% for item in timeline %}
+          <div class="pd-timeline-item">
+            <div class="pd-timeline-dot"></div>
+            <div class="pd-timeline-content">
+              <div class="pd-timeline-date">{{ item.date or 'N/A' }}</div>
+              <h3 class="pd-timeline-title">{{ item.title }}</h3>
+              <p class="pd-timeline-desc">{{ item.desc }}</p>
+              <span class="pd-timeline-type">{{ item.type }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="pd-empty-state">
+        <div class="pd-empty-state-icon">📅</div>
+        <div class="pd-empty-state-title">Your Health Timeline is Empty</div>
+        <div class="pd-empty-state-desc">You have no medical logs, appointments, or documents registered in the system yet. Let's add your first records to build the timeline!</div>
+        <a href="{{ url_for('core.medical_documents') }}" class="pd-btn-primary">Add Medical Records</a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

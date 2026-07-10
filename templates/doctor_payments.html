@@ -1,0 +1,238 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell">
+  <!-- Header Row -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Patient Payments &amp; Earnings</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Track revenue, verify transactions, and download invoice receipts.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{{ url_for('core.export_payments_csv') }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+        📥 Export Payments (CSV)
+      </a>
+    </div>
+  </div>
+
+  <!-- Earnings KPI Panels -->
+  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <!-- Total Revenue -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; position: relative; overflow: hidden; border-left: 4px solid #10b981;">
+      <span style="font-size: 1.8rem; background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 8px;">💰</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Total Revenue</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">${{ "{:,.2f}".format(total_revenue) }}</h3>
+      </div>
+    </div>
+    <!-- Pending -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #f59e0b;">
+      <span style="font-size: 1.8rem; background: rgba(245, 158, 11, 0.1); padding: 0.5rem; border-radius: 8px;">⏳</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Pending Payments</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">${{ "{:,.2f}".format(pending_payments) }}</h3>
+      </div>
+    </div>
+    <!-- Today's Earnings -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #3b82f6;">
+      <span style="font-size: 1.8rem; background: rgba(59, 130, 246, 0.1); padding: 0.5rem; border-radius: 8px;">📅</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Today's Earnings</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">${{ "{:,.2f}".format(today_earnings) }}</h3>
+      </div>
+    </div>
+    <!-- Monthly Earnings -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #8b5cf6;">
+      <span style="font-size: 1.8rem; background: rgba(139, 92, 246, 0.1); padding: 0.5rem; border-radius: 8px;">📈</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Monthly Earnings</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">${{ "{:,.2f}".format(monthly_earnings) }}</h3>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter / Search Form -->
+  <div class="dr-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <form method="get" action="{{ url_for('core.doctor_payments') }}" style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div style="position: relative;">
+        <input type="text" name="q" value="{{ q or '' }}" placeholder="Search by patient name..." class="dr-input" style="margin: 0; padding-left: 2.5rem; width: 100%; box-sizing: border-box;" />
+        <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+      </div>
+      <div>
+        <select name="status" class="dr-input" style="margin: 0; width: auto;" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          <option value="Paid" {% if status_filter == 'Paid' %}selected{% endif %}>Paid</option>
+          <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+          <option value="Failed" {% if status_filter == 'Failed' %}selected{% endif %}>Failed</option>
+          <option value="Refunded" {% if status_filter == 'Refunded' %}selected{% endif %}>Refunded</option>
+        </select>
+      </div>
+      <div>
+        <select name="method" class="dr-input" style="margin: 0; width: auto;" onchange="this.form.submit()">
+          <option value="">All Methods</option>
+          <option value="UPI" {% if method_filter == 'UPI' %}selected{% endif %}>UPI</option>
+          <option value="Card" {% if method_filter == 'Card' %}selected{% endif %}>Card</option>
+          <option value="Cash" {% if method_filter == 'Cash' %}selected{% endif %}>Cash</option>
+          <option value="Net Banking" {% if method_filter == 'Net Banking' %}selected{% endif %}>Net Banking</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="dr-btn-gradient" style="padding: 0.65rem 1.25rem;">Apply Filters</button>
+        {% if q or status_filter or method_filter %}
+          <a href="{{ url_for('core.doctor_payments') }}" class="dr-btn-outline" style="text-decoration: none; text-align: center; line-height: 2.2rem; height: 2.2rem; padding: 0 1rem; border-radius: 8px;">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Transaction Records Table -->
+  <div class="dr-panel" style="padding: 0; overflow: hidden;">
+    {% if payments %}
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border); background: color-mix(in srgb, var(--border) 15%, transparent);">
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Patient Name</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Appt ID</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Date / Time</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Consultation Fee</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Method</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Status</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; text-align: right;">Invoice Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in payments %}
+              <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='color-mix(in srgb, var(--accent) 5%, transparent)'" onmouseout="this.style.backgroundColor='transparent'">
+                <td style="padding: 1rem; font-weight: bold; color: var(--text);">{{ p.patient_name }}</td>
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">#{{ p.appointment_id }}</td>
+                <td style="padding: 1rem; color: var(--text);">{{ p.visit_ts }}</td>
+                <td style="padding: 1rem; font-weight: bold; color: var(--text);">${{ "{:,.2f}".format(p.consultation_fee) }}</td>
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">{{ p.payment_method }}</td>
+                <td style="padding: 1rem;">
+                  {% if p.status == 'Paid' %}
+                    <span style="background: #10b981; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">PAID</span>
+                  {% elif p.status == 'Pending' %}
+                    <span style="background: #f59e0b; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">PENDING</span>
+                  {% elif p.status == 'Refunded' %}
+                    <span style="background: #64748b; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">REFUNDED</span>
+                  {% else %}
+                    <span style="background: #ef4444; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">FAILED</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 1rem; text-align: right;">
+                  <button type="button" class="dr-btn-outline" style="padding: 0.3rem 0.7rem; font-size: 0.8rem; border-radius: 6px; cursor: pointer;" onclick="openReceiptModal('{{ p.patient_name }}', '{{ p.appointment_id }}', '{{ p.visit_ts }}', '{{ p.consultation_fee }}', '{{ p.status }}', '{{ p.payment_method }}', '{{ p.transaction_id }}')">
+                    📄 View Invoice
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Showing page {{ page }} of {{ total_pages }}</span>
+          <div style="display: flex; gap: 0.5rem;">
+            {% if page > 1 %}
+              <a href="{{ url_for('core.doctor_payments', page=page-1, q=q, status=status_filter, method=method_filter) }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">&larr; Previous</a>
+            {% else %}
+              <span class="dr-btn-outline" style="opacity: 0.5; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; cursor: not-allowed;">&larr; Previous</span>
+            {% endif %}
+            {% if page < total_pages %}
+              <a href="{{ url_for('core.doctor_payments', page=page+1, q=q, status=status_filter, method=method_filter) }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">Next &rarr;</a>
+            {% else %}
+              <span class="dr-btn-outline" style="opacity: 0.5; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; cursor: not-allowed;">Next &rarr;</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% else %}
+      <div style="padding: 4rem 2rem; text-align: center;">
+        <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">💳</span>
+        <h3 style="margin: 0; color: var(--text);">No Transactions Recorded</h3>
+        <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem;">No payment transactions match the active search filters.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Receipt Modal Overlay -->
+<div id="receipt-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 1.5rem;">
+  <div class="dr-panel" style="width: 100%; max-width: 480px; padding: 2rem; border-radius: 12px; box-shadow: var(--shadow-hover); position: relative; background: var(--surface);">
+    <button type="button" style="position: absolute; right: 1rem; top: 1rem; border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);" onclick="closeReceiptModal()">&times;</button>
+    
+    <div style="text-align: center; border-bottom: 1px dashed var(--border); padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+      <h2 style="margin: 0; color: var(--accent); font-weight: 800;">MEDVAULT CLINIC</h2>
+      <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-muted);">Secure Digital Medical Receipt</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Patient Name:</span>
+        <strong id="modal-patient" style="color: var(--text);"></strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Appointment ID:</span>
+        <span id="modal-appt-id" style="color: var(--text);"></span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Date / Time:</span>
+        <span id="modal-date" style="color: var(--text);"></span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Payment Method:</span>
+        <span id="modal-method" style="color: var(--text);"></span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Transaction ID:</span>
+        <span id="modal-txn-id" style="color: var(--text); font-family: monospace;"></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 0.75rem; margin-top: 0.25rem;">
+        <span style="color: var(--text); font-weight: bold;">Amount Paid:</span>
+        <strong id="modal-amount" style="color: var(--text); font-size: 1.1rem;"></strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Status:</span>
+        <span id="modal-status" style="font-weight: bold; text-transform: uppercase;"></span>
+      </div>
+    </div>
+
+    <div style="margin-top: 2rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+      <button type="button" class="dr-btn-outline" style="padding: 0.5rem 1rem;" onclick="closeReceiptModal()">Close</button>
+      <button type="button" class="dr-btn-gradient" style="padding: 0.5rem 1rem;" onclick="window.print()">Print Receipt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openReceiptModal(patient, apptId, date, fee, status, method, txnId) {
+    document.getElementById('modal-patient').innerText = patient;
+    document.getElementById('modal-appt-id').innerText = '#' + apptId;
+    document.getElementById('modal-date').innerText = date;
+    document.getElementById('modal-method').innerText = method;
+    document.getElementById('modal-txn-id').innerText = txnId ? txnId : 'N/A';
+    document.getElementById('modal-amount').innerText = '$' + parseFloat(fee).toFixed(2);
+    
+    const statusEl = document.getElementById('modal-status');
+    statusEl.innerText = status;
+    if (status === 'Paid') {
+      statusEl.style.color = '#10b981';
+    } else if (status === 'Pending') {
+      statusEl.style.color = '#f59e0b';
+    } else if (status === 'Refunded') {
+      statusEl.style.color = '#64748b';
+    } else {
+      statusEl.style.color = '#ef4444';
+    }
+
+    document.getElementById('receipt-modal').style.display = 'flex';
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('receipt-modal').style.display = 'none';
+  }
+</script>
+{% endblock %}

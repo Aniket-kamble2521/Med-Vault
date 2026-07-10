@@ -1,0 +1,134 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell">
+  
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">EHR Clinical Document Center</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Inspect, filter, preview, and compare diagnostic reports across your patient registry.</p>
+    </div>
+    
+    <button onclick="toggleCompareMode()" class="dr-btn-gradient dr-btn-gradient--inline" style="background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%); border: none; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);">
+      🔀 Split Screen Comparison
+    </button>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="dr-panel" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+    <form method="get" style="display: flex; flex: 1; gap: 0.75rem; flex-wrap: wrap; margin: 0; width: 100%;">
+      <div style="flex: 1; min-width: 240px; position: relative;">
+        <input type="text" name="q" value="{{ q or '' }}" class="dr-search-input" style="padding-left: 2.5rem; width: 100%; box-sizing: border-box;" placeholder="Search report name... " />
+        <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);">🔍</span>
+      </div>
+      
+      <select name="category" class="dr-input" style="width: auto; margin-top: 0; padding: 0.5rem 2rem 0.5rem 0.75rem; font-size: 0.88rem;" onchange="this.form.submit()">
+        <option value="">-- All Categories --</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+      
+      {% if q or category %}
+        <a href="{{ url_for('core.doctor_documents_center') }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.5rem 1rem; text-align: center; width: auto;">Reset</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Split Screen Comparison Panel -->
+  <div id="compare_panel" style="display: none; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; animation: slideDown 0.3s ease;">
+    <!-- Doc A Select -->
+    <div class="dr-panel" style="padding: 1.25rem;">
+      <h3 style="margin-top: 0; font-size: 1rem;">Document A (Baseline)</h3>
+      <select id="compare_a" class="dr-input" onchange="loadCompareDoc('a', this.value)">
+        <option value="">-- Choose First Document --</option>
+        {% for d in docs %}
+          <option value="{{ d.id }}" data-filename="{{ d.filename }}">{{ d.patient_name }} - {{ d.filename }}</option>
+        {% endfor %}
+      </select>
+      <div id="preview_a" style="margin-top: 1rem; border: 1px solid var(--border); border-radius: 8px; height: 320px; display: grid; place-items: center; background: rgba(0,0,0,0.02); overflow: hidden;">
+        <span style="color: var(--text-muted); font-style: italic;">First document preview loader</span>
+      </div>
+    </div>
+    <!-- Doc B Select -->
+    <div class="dr-panel" style="padding: 1.25rem;">
+      <h3 style="margin-top: 0; font-size: 1rem;">Document B (Comparison)</h3>
+      <select id="compare_b" class="dr-input" onchange="loadCompareDoc('b', this.value)">
+        <option value="">-- Choose Second Document --</option>
+        {% for d in docs %}
+          <option value="{{ d.id }}" data-filename="{{ d.filename }}">{{ d.patient_name }} - {{ d.filename }}</option>
+        {% endfor %}
+      </select>
+      <div id="preview_b" style="margin-top: 1rem; border: 1px solid var(--border); border-radius: 8px; height: 320px; display: grid; place-items: center; background: rgba(0,0,0,0.02); overflow: hidden;">
+        <span style="color: var(--text-muted); font-style: italic;">Second document preview loader</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents Grid -->
+  <div class="dr-panel" style="padding: 1.5rem;">
+    {% if not docs %}
+      <div style="text-align: center; padding: 3rem 1.5rem;">
+        <span style="font-size: 3rem;">📂</span>
+        <h3 style="margin: 1rem 0 0.5rem; font-size: 1.25rem; font-weight: 700;">No Uploaded Documents Found</h3>
+        <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">No patient clinical reports matched your filters.</p>
+      </div>
+    {% else %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+        {% for d in docs %}
+          <div style="border: 1px solid var(--border); border-radius: 12px; padding: 1rem; background: var(--surface); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s;" class="dr-doc-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <span style="background: rgba(59, 130, 246, 0.12); color: var(--accent); font-size: 0.72rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: bold; text-transform: uppercase;">
+                  {{ d.category }}
+                </span>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">{{ d.created_at }}</span>
+              </div>
+              <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ d.filename }}
+              </h3>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                Patient: <strong>{{ d.patient_name }}</strong>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+              <a href="/doctor/emergency-preview-file/{{ d.id }}" target="_blank" class="dr-btn-outline" style="text-decoration: none; font-size: 0.78rem; padding: 0.4rem; flex: 1; text-align: center; justify-content: center;">
+                👁️ View File
+              </a>
+              <a href="/doctor/emergency-download-file/{{ d.id }}" class="dr-btn-outline" style="text-decoration: none; font-size: 0.78rem; padding: 0.4rem; justify-content: center; width: auto;">
+                📥 Download
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function toggleCompareMode() {
+    const panel = document.getElementById('compare_panel');
+    if (panel.style.display === 'none') {
+      panel.style.display = 'grid';
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  function loadCompareDoc(side, docId) {
+    const container = document.getElementById('preview_' + side);
+    if (!docId) {
+      container.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">Choose a file above</span>';
+      return;
+    }
+    container.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted);"><span class="animate-pulse">Loading preview frame...</span></div>';
+    
+    // Render an iframe loading the secure emergency bypass route
+    const fileUrl = '/doctor/emergency-preview-file/' + docId;
+    container.innerHTML = '<iframe src="' + fileUrl + '" style="width:100%; height:100%; border:none; background:#fff;"></iframe>';
+  }
+</script>
+{% endblock %}

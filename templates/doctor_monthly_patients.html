@@ -1,0 +1,102 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell">
+  <div>
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Monthly Patient Reports</h1>
+    <p class="dr-hint" style="margin: 0.2rem 0 2rem;">Analysis of patient registry growth, returning visits, and retention.</p>
+  </div>
+
+  <!-- KPI Grid -->
+  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <!-- New Patients -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #10b981;">
+      <span style="font-size: 2rem; background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 8px;">🆕</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">New Patients</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">{{ new_patients }}</h3>
+      </div>
+    </div>
+    <!-- Returning Patients -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #3b82f6;">
+      <span style="font-size: 2rem; background: rgba(59, 130, 246, 0.1); padding: 0.5rem; border-radius: 8px;">🔄</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Returning Patients</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">{{ ret_patients }}</h3>
+      </div>
+    </div>
+    <!-- Missed Appointments -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #ef4444;">
+      <span style="font-size: 2rem; background: rgba(239, 68, 68, 0.1); padding: 0.5rem; border-radius: 8px;">❌</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Missed Appointments</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">{{ missed_appts }}</h3>
+      </div>
+    </div>
+    <!-- Completed Consults -->
+    <div class="dr-panel" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #8b5cf6;">
+      <span style="font-size: 2rem; background: rgba(139, 92, 246, 0.1); padding: 0.5rem; border-radius: 8px;">✅</span>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Completed Visits</div>
+        <h3 style="margin: 0.2rem 0 0; font-size: 1.4rem; color: var(--text); font-weight: 800;">{{ completed_consultations }}</h3>
+      </div>
+    </div>
+  </section>
+
+  <!-- Growth Chart -->
+  <div class="dr-panel dr-chart-panel" style="margin-bottom: 2rem; padding: 1.5rem;">
+    <h2 class="dr-side-title" style="margin-top: 0;">Monthly Patient Growth</h2>
+    <p class="dr-hint" style="margin-bottom: 1.5rem;">Total new patients onboarded per month over the last 6 months.</p>
+    <div style="height: 300px; position: relative; width: 100%;">
+      <canvas id="monthly-patients-chart" style="height: 100%; width: 100%;"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    const el = document.getElementById("monthly-patients-chart");
+    if (!el) return;
+
+    const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#3b82f6";
+    const grid = getComputedStyle(document.body).getPropertyValue("--border").trim() || "#e2e8f0";
+    const text = getComputedStyle(document.body).getPropertyValue("--text-muted").trim() || "#64748b";
+
+    const labels = {{ chart_labels | tojson }};
+    const data = {{ chart_data | tojson }};
+
+    new Chart(el, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "New Patients Onboarded",
+          data: data,
+          backgroundColor: accent + "d0",
+          borderRadius: 6,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { 
+            ticks: { color: text }, 
+            grid: { display: false } 
+          },
+          y: { 
+            beginAtZero: true, 
+            ticks: { color: text, stepSize: 1 }, 
+            grid: { color: grid }
+          }
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}

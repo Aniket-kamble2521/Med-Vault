@@ -93,12 +93,12 @@ export function LoginCard({
         </ul>
 
         <div className="mt-8 flex-1" />
-        <button
-          type="button"
+        <a
+          href={`/login?role=${variant}`}
           className={`w-full rounded-xl px-5 py-3.5 text-center text-sm font-semibold text-white transition-all duration-300 ${buttonClass}`}
         >
           {ctaLabel}
-        </button>
+        </a>
       </div>
     </article>
   );

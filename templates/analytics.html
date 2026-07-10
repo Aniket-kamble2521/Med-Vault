@@ -1,0 +1,164 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <h1 class="pd-page-title">AI Health Analytics</h1>
+    <p class="pd-page-lead">Custom clinical insights, automated risk modeling, and lifestyle suggestions calculated from your vitals.</p>
+    
+    <!-- Top Summary Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+      <!-- Score panel -->
+      <div class="pd-panel" style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem;">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Overall Health Score</span>
+          <strong style="font-size: 3rem; display: block; margin-top: 0.25rem; color: var(--accent);">{{ score }}</strong>
+          <span class="pd-score-label" style="background: var(--accent-15); color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-top: 0.5rem; display: inline-block;">
+            {{ category }}
+          </span>
+        </div>
+        <div style="width: 80px; height: 80px;">
+          <svg viewBox="0 0 36 36" style="width: 100%; height: 100%;">
+            <path stroke="#e2e8f0" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path stroke="var(--accent)" stroke-width="3" stroke-dasharray="{{ score }}, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Trend panel -->
+      <div class="pd-panel" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: center;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Health Trend Status</span>
+        <strong style="font-size: 2rem; display: block; margin-top: 0.25rem; color: {% if trend == 'Improving' %}#10b981{% elif trend == 'Stable' %}#f59e0b{% else %}#ef4444{% endif %};">
+          {{ trend }}
+        </strong>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+          {% if trend == 'Improving' %}Keep up the great progress! Your vitals indicate positive lifestyle improvements.
+          {% elif trend == 'Stable' %}Your parameters are holding steady. Maintain your exercise and diet routines.
+          {% else %}Warning signs or missing logs detected. Please update your readings regularly.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Insights & Suggestions Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; align-items: start;">
+      
+      <!-- AI Summary -->
+      <section class="pd-panel" style="background: #f8fafc; border-color: #e2e8f0;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 1rem 0; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+          🤖 AI Clinical Summary
+        </h3>
+        <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; color: var(--text); font-size: 0.95rem; line-height: 1.5;">
+          {% for statement in ai_summary %}
+            <li>{{ statement }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      
+      <!-- Recommendations -->
+      <section class="pd-panel" style="background: #f0fdf4; border-color: #bbf7d0;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 1rem 0; color: #166534; display: flex; align-items: center; gap: 0.5rem;">
+          💡 Personalized Recommendations
+        </h3>
+        <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; color: #166534; font-size: 0.95rem; line-height: 1.5;">
+          {% for sug in suggestions %}
+            <li>{{ sug }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      
+    </div>
+    
+    <!-- Health Trend Graphs -->
+    <section class="pd-panel">
+      <h2 class="dr-side-title" style="margin-bottom: 1.5rem;">Vitals & Habits Trend Graphs</h2>
+      
+      {% if vitals %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem;">
+          <div style="height: 250px; position: relative;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">Blood Pressure Trend</h4>
+            <canvas id="bpChart"></canvas>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">Blood Sugar Trend</h4>
+            <canvas id="sugarChart"></canvas>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">Heart Rate Trend</h4>
+            <canvas id="hrChart"></canvas>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">BMI Trend</h4>
+            <canvas id="bmiChart"></canvas>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">Sleep hours Trend</h4>
+            <canvas id="sleepChart"></canvas>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">Water Intake Trend</h4>
+            <canvas id="waterChart"></canvas>
+          </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+          (function() {
+            const vitals = {{ vitals | tojson }};
+            const labels = vitals.map(v => v.date_label || 'N/A');
+            
+            const config = (ctxId, label, data, color) => new Chart(document.getElementById(ctxId), {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: label,
+                  data: data,
+                  borderColor: color,
+                  backgroundColor: color + '10',
+                  tension: 0.3,
+                  fill: true,
+                  spanGaps: true
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false } } }
+              }
+            });
+
+            new Chart(document.getElementById("bpChart"), {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [
+                  { label: 'Systolic', data: vitals.map(v => v.bp_systolic || null), borderColor: '#ef4444', tension: 0.3, spanGaps: true },
+                  { label: 'Diastolic', data: vitals.map(v => v.bp_diastolic || null), borderColor: '#3b82f6', tension: 0.3, spanGaps: true }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { grid: { display: false } } }
+              }
+            });
+
+            config("sugarChart", "Sugar (mg/dL)", vitals.map(v => v.sugar || null), "#f59e0b");
+            config("hrChart", "Heart Rate (bpm)", vitals.map(v => v.heart_rate || null), "#10b981");
+            config("bmiChart", "BMI", vitals.map(v => v.bmi || null), "#64748b");
+            config("sleepChart", "Sleep (hrs)", vitals.map(v => v.sleep_hours || null), "#8b5cf6");
+            config("waterChart", "Water (L)", vitals.map(v => v.water_intake || null), "#06b6d4");
+
+          })();
+        </script>
+      {% else %}
+        <div class="pd-empty-state" style="margin: 0; padding: 2rem;">
+          <div class="pd-empty-state-title" style="font-size: 1.1rem;">No vitals trend charts available yet</div>
+          <div class="pd-empty-state-desc">Enter logs regularly in the Vitals page to populate trend graphs.</div>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

@@ -3,115 +3,905 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Emergency Medical Summary</title>
+    <title>Emergency Medical Passport — MedVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-      .header { background: #e74c3c; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-      .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #ddd; }
-      .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-      .data-label { font-weight: bold; color: #333; }
-      .data-value { color: #666; }
-      .emergency-info { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107; }
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #ef4444; /* Emergency Red */
+        --accent-glow: rgba(239, 68, 68, 0.15);
+        --success: #10b981;
+        --success-glow: rgba(16, 185, 129, 0.15);
+        --info: #3b82f6;
+        --info-glow: rgba(59, 130, 246, 0.15);
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 0;
+        line-height: 1.5;
+      }
+
+      .emergency-header-alert {
+        background: #dc2626;
+        color: white;
+        text-align: center;
+        padding: 0.75rem 1rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .main-container {
+        max-width: 1280px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+        box-sizing: border-box;
+      }
+
+      .passport-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 2rem;
+      }
+
+      /* Left Sidebar Passport Card */
+      .passport-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .passport-card {
+        background: var(--surface);
+        border: 2px solid #fca5a5;
+        border-radius: 24px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.05);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .passport-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: var(--accent);
+      }
+
+      .passport-avatar-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .passport-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #fecaca 0%, #ef4444 100%);
+        color: white;
+        font-size: 2.25rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2);
+        margin-bottom: 0.75rem;
+      }
+
+      .passport-name {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--text);
+        text-align: center;
+        margin: 0;
+      }
+
+      .passport-badge {
+        background: #fee2e2;
+        color: #ef4444;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+        margin-top: 0.35rem;
+        text-transform: uppercase;
+      }
+
+      .passport-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 1.25rem 0;
+      }
+
+      .passport-info-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+
+      .passport-info-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+      }
+
+      .passport-info-k {
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+
+      .passport-info-v {
+        color: var(--text);
+        font-weight: 600;
+        text-align: right;
+      }
+
+      /* Circular Health Score Widget */
+      .sidebar-widget {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+      }
+
+      .circular-score-wrapper {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 0.75rem auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .circular-score-wrapper svg {
+        transform: rotate(-90deg);
+      }
+
+      .circular-score-text {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Right Main Column Details */
+      .details-main {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .critical-instruction-card {
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .critical-instruction-title {
+        color: #991b1b;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .critical-instruction-desc {
+        color: #7f1d1d;
+        font-size: 0.85rem;
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      .glass-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+      }
+
+      .glass-section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .glass-section-header h2 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .glass-section-icon {
+        font-size: 1.35rem;
+      }
+
+      .medical-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+      }
+
+      .medical-detail-block {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .medical-detail-block h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .medical-detail-block p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text);
+        font-weight: 500;
+        word-wrap: break-word;
+      }
+
+      /* Folders Grid for Documents */
+      .folders-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+      }
+
+      .folder-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+      }
+
+      .folder-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+
+      .folder-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .folder-icon {
+        font-size: 1.5rem;
+        color: #f59e0b; /* Yellow folder */
+      }
+
+      .folder-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .folder-files-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .folder-file-item {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        padding-bottom: 0.35rem;
+        border-bottom: 1px dashed #e2e8f0;
+      }
+
+      .folder-file-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .folder-file-name {
+        font-weight: 600;
+        color: var(--text);
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* History items styling */
+      .history-item {
+        border-left: 2px solid var(--border);
+        padding-left: 1.25rem;
+        position: relative;
+        margin-bottom: 1.5rem;
+      }
+
+      .history-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .history-marker {
+        position: absolute;
+        left: -5px;
+        top: 4px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--info);
+        border: 2px solid var(--surface);
+      }
+
+      .history-date {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--info);
+        margin-bottom: 0.25rem;
+        display: block;
+      }
+
+      .history-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0 0 0.25rem 0;
+      }
+
+      .history-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .note-bubble {
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        font-style: italic;
+        color: #475569;
+        display: inline-block;
+      }
+
+      /* Disclaimer style */
+      .emergency-disclaimer {
+        background: #fffbeb;
+        border: 1px solid #fef3c7;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        color: #92400e;
+        font-size: 0.8rem;
+        font-weight: 500;
+        line-height: 1.5;
+        margin-top: 1rem;
+        text-align: center;
+      }
+
+      @media (max-width: 768px) {
+        .passport-grid {
+          grid-template-columns: 1fr;
+        }
+        .main-container {
+          margin: 1rem auto;
+        }
+        .medical-grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="header">
-      <h1>🚑 Emergency Medical Summary</h1>
-      <p><strong>Patient:</strong> {{ full_name or "Unknown Patient" }}</p>
-      <p><strong>Blood Group:</strong> {{ blood_group or "Not specified" }}</p>
-      <p><strong>Emergency Contact:</strong> Available in patient records</p>
+    <!-- Emergency Sticky Header -->
+    <div class="emergency-header-alert">
+      <span>🚨</span> EMERGENCY RESPONDER ACCESS ACTIVE <span>🚨</span>
     </div>
 
-    <div class="section">
-      <h2>📋 Medical Information</h2>
-      
-      <div class="data-row">
-        <span class="data-label">Allergies:</span>
-        <span class="data-value">{{ allergies or "No known allergies recorded" }}</span>
-      </div>
-      
-      <div class="data-row">
-        <span class="data-label">Medications:</span>
-        <span class="data-value">{{ medications or "No current medications recorded" }}</span>
-      </div>
-      
-      <div class="data-row">
-        <span class="data-label">Conditions:</span>
-        <span class="data-value">{{ conditions or "No chronic conditions recorded" }}</span>
-      </div>
-    </div>
+    <div class="main-container">
+      <div class="passport-grid">
+        
+        <!-- Left Side Demographics Passport Card -->
+        <div class="passport-sidebar">
+          <div class="passport-card">
+            <div class="passport-avatar-wrapper">
+              <div class="passport-avatar">
+                {{ full_name[0] if full_name else 'P' }}
+              </div>
+              <h2 class="passport-name">{{ full_name or "Unknown Patient" }}</h2>
+              <span class="passport-badge">Emergency Passport</span>
+            </div>
 
-    <div class="section">
-      <h2>📁 Medical Records</h2>
-      <p><strong>Files:</strong> {{ files|length if files else 0 }} files uploaded</p>
-      {% if files %}
-        {% for file in files %}
-          <div class="data-row">
-            <span class="data-label">{{ file.filename }}</span>
-            <span class="data-value">{{ file.uploaded_at[:10] }}</span>
+            <div class="passport-divider"></div>
+
+            <div class="passport-info-list">
+              <div class="passport-info-item">
+                <span class="passport-info-k">Age</span>
+                <span class="passport-info-v">{{ profile.age or 'Not specified' }}</span>
+              </div>
+              <div class="passport-info-item">
+                <span class="passport-info-k">Gender</span>
+                <span class="passport-info-v">{{ profile.gender or 'Not specified' }}</span>
+              </div>
+              <div class="passport-info-item">
+                <span class="passport-info-k">Blood Group</span>
+                <span class="passport-info-v" style="color: #ef4444; font-weight: 800;">{{ blood_group or 'Not specified' }}</span>
+              </div>
+              <div class="passport-info-item">
+                <span class="passport-info-k">Height</span>
+                <span class="passport-info-v">{{ profile.height or '—' }} cm</span>
+              </div>
+              <div class="passport-info-item">
+                <span class="passport-info-k">Weight</span>
+                <span class="passport-info-v">{{ profile.weight or '—' }} kg</span>
+              </div>
+            </div>
+
+            <div class="passport-divider"></div>
+
+            <div class="passport-info-list">
+              <div style="font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem;">Emergency Contact</div>
+              <div class="passport-info-item">
+                <span class="passport-info-k">Name</span>
+                <span class="passport-info-v">{{ profile.emergency_contact_name or 'Not specified' }}</span>
+              </div>
+              <div class="passport-info-item">
+                <span class="passport-info-k">Phone</span>
+                <span class="passport-info-v" style="color: #1e3a8a; font-weight: 700;">{{ profile.emergency_contact_number or 'Not specified' }}</span>
+              </div>
+            </div>
+
+            <div class="passport-divider"></div>
+
+            <div class="passport-info-list">
+              <div style="font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem;">Primary Healthcare Doctor</div>
+              {% if primary_doctor %}
+                <div class="passport-info-item">
+                  <span class="passport-info-k">Dr. Name</span>
+                  <span class="passport-info-v">Dr. {{ primary_doctor.name }}</span>
+                </div>
+                <div class="passport-info-item">
+                  <span class="passport-info-k">Specialty</span>
+                  <span class="passport-info-v">{{ primary_doctor.specialization or 'General Practitioner' }}</span>
+                </div>
+                <div class="passport-info-item">
+                  <span class="passport-info-k">Contact</span>
+                  <span class="passport-info-v">{{ primary_doctor.contact or '—' }}</span>
+                </div>
+              {% else %}
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">No primary doctor assigned.</div>
+              {% endif %}
+            </div>
           </div>
-        {% endfor %}
-      {% endif %}
-    </div>
 
-    <div class="section">
-      <h2>📅 Appointments</h2>
-      <p><strong>Upcoming:</strong> {{ appointments|length if appointments else 0 }} appointments</p>
-      {% if appointments %}
-        {% for appt in appointments %}
-          <div class="data-row">
-            <span class="data-label">{{ appt.doctor_name or "Doctor" }}</span>
-            <span class="data-value">{{ appt.appointment_at[:10] }}</span>
+          <!-- Circular Health Score Card -->
+          <div class="sidebar-widget">
+            <h3 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text); text-align: center;">Wellness Health Index</h3>
+            <div class="circular-score-wrapper">
+              <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="6" opacity="0.4"></circle>
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#ef4444" stroke-width="6" 
+                        stroke-dasharray="263.89" stroke-dashoffset="{{ 263.89 - (health_score_val / 100 * 263.89) }}" 
+                        stroke-linecap="round" style="transition: stroke-dashoffset 0.8s ease-out;"></circle>
+              </svg>
+              <div class="circular-score-text">
+                <span style="font-size: 1.5rem; font-weight: 800; color: var(--text); line-height: 1;">{{ health_score_val }}</span>
+                <span style="font-size: 0.6rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-top: 1px;">Grade {{ health_score_grade }}</span>
+              </div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">Calculated dynamically from patient's vital history entries.</div>
           </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-
-    <div class="section">
-      <h2>💊 Prescriptions</h2>
-      <p><strong>Current:</strong> {{ prescriptions|length if prescriptions else 0 }} prescriptions</p>
-      {% if prescriptions %}
-        {% for rx in prescriptions %}
-          <div class="data-row">
-            <span class="data-label">{{ rx.medicine_name }}</span>
-            <span class="data-value">{{ rx.dosage }}</span>
-          </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-
-    {% if allergies_registry %}
-    <div class="section">
-      <h2>⚠️ Allergy Registry</h2>
-      {% for allergy in allergies_registry %}
-        <div class="data-row">
-          <span class="data-label">{{ allergy.allergy_name }}</span>
-          <span class="data-value">Severity: {{ allergy.severity }}</span>
         </div>
-      {% endfor %}
-    </div>
-    {% endif %}
 
-    {% if vitals %}
-    <div class="section">
-      <h2>📊 Recent Vitals</h2>
-      {% for vital in vitals %}
-        <div class="data-row">
-          <span class="data-label">{{ vital.logged_at[:10] }}</span>
-          <span class="data-value">BP: {{ vital.bp_systolic }}/{{ vital.bp_diastolic }}, HR: {{ vital.heart_rate }}, Weight: {{ vital.weight }}kg</span>
+        <!-- Right Side Main Content Panel -->
+        <div class="details-main">
+          
+          <!-- Critical Emergency Instructions -->
+          <div class="critical-instruction-card">
+            <h3 class="critical-instruction-title">⚠️ CLINICAL EMERGENCY INSTRUCTIONS</h3>
+            <p class="critical-instruction-desc">
+              Verify identity card constraints. Do not administer medications containing patient's reported allergies. Check the active prescriptions list before prescribing any counter-acting drugs.
+            </p>
+          </div>
+
+          <!-- AI Emergency Medical Summary -->
+          <div class="glass-section" style="border: 1px solid #fecaca; background: linear-gradient(135deg, #fffafb 0%, #ffffff 100%);">
+            <div class="glass-section-header" style="border-bottom-color: #fee2e2;">
+              <span class="glass-section-icon">🤖</span>
+              <h2>AI Health &amp; Diagnostic Summary</h2>
+            </div>
+            <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #7f1d1d; font-weight: 500;">
+              {{ medical_summary or 'No medical logs or reports found. Contact patient for comprehensive case review.' }}
+            </p>
+          </div>
+
+          <!-- Medical Information section -->
+          <div class="glass-section">
+            <div class="glass-section-header">
+              <span class="glass-section-icon">📋</span>
+              <h2>Critical Medical Information</h2>
+            </div>
+            
+            <div class="medical-grid-2">
+              <div class="medical-detail-block" style="border-left: 4px solid #ef4444;">
+                <h4>⚠️ Reported Allergies</h4>
+                <p>
+                  {% if allergies_registry %}
+                    {% for a in allergies_registry %}
+                      {{ a.allergy_name }} ({{ a.severity }}){% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    {{ allergies or 'No active allergies recorded.' }}
+                  {% endif %}
+                </p>
+              </div>
+
+              <div class="medical-detail-block" style="border-left: 4px solid #f59e0b;">
+                <h4>🧬 Chronic Diseases / Conditions</h4>
+                <p>{{ conditions or 'No chronic conditions recorded.' }}</p>
+              </div>
+
+              <div class="medical-detail-block">
+                <h4>💊 Current Medications</h4>
+                <p>{{ medications or 'No current medications logged.' }}</p>
+              </div>
+
+              <div class="medical-detail-block">
+                <h4>🏥 Surgical History</h4>
+                <p>{{ profile.previous_surgeries or 'No previous surgeries logged.' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Prescriptions -->
+          <div class="glass-section">
+            <div class="glass-section-header">
+              <span class="glass-section-icon">💊</span>
+              <h2>Active Clinical Prescriptions</h2>
+            </div>
+            {% if prescriptions %}
+              <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                {% for rx in prescriptions %}
+                  <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 1rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                      <strong style="color: var(--text); font-size: 0.95rem;">{{ rx.medicine_name }}</strong>
+                      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
+                        Dosage: <strong>{{ rx.dosage }}</strong> • Freq: <strong>{{ rx.frequency }}</strong>
+                      </div>
+                    </div>
+                    <div style="font-size: 0.8rem; text-align: right; color: var(--text-muted);">
+                      <div>Dr. {{ rx.doctor_name or 'Clinic Provider' }}</div>
+                      <div style="font-size: 0.75rem; margin-top: 2px;">Duration: {{ rx.start_date }} {% if rx.end_date %}to {{ rx.end_date }}{% endif %}</div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p style="color: var(--text-muted); font-style: italic; margin: 0;">No active prescriptions recorded in patient's account.</p>
+            {% endif %}
+          </div>
+
+          <!-- Vaccination History -->
+          <div class="glass-section">
+            <div class="glass-section-header">
+              <span class="glass-section-icon">💉</span>
+              <h2>Vaccination History</h2>
+            </div>
+            {% if vaccinations %}
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for vac in vaccinations %}
+                  <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 0.85rem 1rem; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <strong style="font-size: 0.9rem; color: var(--text);">{{ vac.vaccine_name }}</strong>
+                      <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">{{ vac.dose_info }}</span>
+                    </div>
+                    <div style="text-align: right;">
+                      <span style="background: {% if vac.status == 'completed' %}#ecfdf5{% else %}#fffbeb{% endif %}; color: {% if vac.status == 'completed' %}#10b981{% else %}#f59e0b{% endif %}; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 12px; text-transform: uppercase;">
+                        {{ vac.status }}
+                      </span>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem;">Due: {{ vac.due_date }}</span>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p style="color: var(--text-muted); font-style: italic; margin: 0;">No vaccination logs uploaded in this account.</p>
+            {% endif %}
+          </div>
+
+          <!-- Medical Documents (Grouped folder view) -->
+          <div class="glass-section">
+            <div class="glass-section-header">
+              <span class="glass-section-icon">📁</span>
+              <h2>Medical Document Repositories</h2>
+            </div>
+            
+            <div class="folders-grid">
+              
+              <!-- Blood test reports -->
+              <div class="folder-card">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">Blood Test Reports</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set blood_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% if 'blood' in file.filename|lower or 'lab' in (file.category or '')|lower %}
+                      {% set blood_ns.count = blood_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if blood_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No blood reports.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- X-Ray reports -->
+              <div class="folder-card">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">X-Ray Reports</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set xray_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% if 'xray' in file.filename|lower or 'x-ray' in file.filename|lower or 'x-ray' in (file.category or '')|lower %}
+                      {% set xray_ns.count = xray_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if xray_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No X-Ray reports.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- MRI scans -->
+              <div class="folder-card">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">MRI Scan Sheets</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set mri_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% if 'mri' in file.filename|lower or 'mri' in (file.category or '')|lower %}
+                      {% set mri_ns.count = mri_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if mri_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No MRI scans.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- CT scan -->
+              <div class="folder-card">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">CT Scan Sheets</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set ct_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% if 'ct' in file.filename|lower or 'ct' in (file.category or '')|lower %}
+                      {% set ct_ns.count = ct_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if ct_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No CT scans.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- ECG -->
+              <div class="folder-card">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">ECG Chart Sheets</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set ecg_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% if 'ecg' in file.filename|lower or 'ekg' in file.filename|lower or 'ecg' in (file.category or '')|lower %}
+                      {% set ecg_ns.count = ecg_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if ecg_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No ECG reports.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Ultrasound -->
+              <div class="folder-card">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">Ultrasound Charts</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set ultra_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% if 'ultrasound' in file.filename|lower or 'sonography' in file.filename|lower or 'ultrasound' in (file.category or '')|lower %}
+                      {% set ultra_ns.count = ultra_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if ultra_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No Ultrasounds.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Other documents -->
+              <div class="folder-card" style="grid-column: span 2;">
+                <div class="folder-header">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-title">Other Uploaded Medical Documents</span>
+                </div>
+                <div class="folder-files-list">
+                  {% set other_ns = namespace(count=0) %}
+                  {% for file in files %}
+                    {% set fname = file.filename|lower %}
+                    {% set cat = (file.category or '')|lower %}
+                    {% if 'blood' not in fname and 'lab' not in cat and 'blood' not in cat and
+                          'xray' not in fname and 'x-ray' not in fname and 'scan' not in cat and 'xray' not in cat and
+                          'mri' not in fname and 'mri' not in cat and
+                          'ct' not in fname and 'ct scan' not in fname and 'ct' not in cat and
+                          'ecg' not in fname and 'ekg' not in fname and 'ecg' not in cat and
+                          'ultrasound' not in fname and 'sonography' not in fname and 'ultrasound' not in cat %}
+                      {% set other_ns.count = other_ns.count + 1 %}
+                      <div class="folder-file-item">
+                        <span class="folder-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                        <span>{{ file.uploaded_at }} {% if file.doc_source %}({{ file.doc_source }}){% endif %}</span>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                  {% if other_ns.count == 0 %}
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No other documents.</div>
+                  {% endif %}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Recent Health Vitals -->
+          <div class="glass-section">
+            <div class="glass-section-header">
+              <span class="glass-section-icon">📊</span>
+              <h2>Recent Health Vitals History</h2>
+            </div>
+            {% if vitals %}
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for vital in vitals %}
+                  <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 1rem; border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+                      <span style="font-weight: 700; color: var(--info);">📅 Logged: {{ vital.logged_at.replace('T', ' ') }}</span>
+                      {% if vital.weight %}<span style="color: var(--text-muted); font-weight: 600;">Weight: {{ vital.weight }} kg</span>{% endif %}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; font-size: 0.85rem;">
+                      <div>BP: <strong>{% if vital.bp_systolic and vital.bp_diastolic %}{{ vital.bp_systolic }}/{{ vital.bp_diastolic }}{% else %}—{% endif %}</strong> mmHg</div>
+                      <div>Glucose: <strong>{{ vital.sugar or '—' }}</strong> mg/dL</div>
+                      <div>Heart Rate: <strong>{{ vital.heart_rate or '—' }}</strong> bpm</div>
+                    </div>
+                    {% if vital.symptoms %}
+                      <div class="note-bubble">"{{ vital.symptoms }}"</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p style="color: var(--text-muted); font-style: italic; margin: 0;">No health vitals logs recorded.</p>
+            {% endif %}
+          </div>
+
+          <!-- Appointment & Consultation History -->
+          <div class="glass-section">
+            <div class="glass-section-header">
+              <span class="glass-section-icon">📅</span>
+              <h2>Appointment &amp; Consultation History</h2>
+            </div>
+            {% if appointments %}
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for appt in appointments %}
+                  <div class="history-item">
+                    <div class="history-marker"></div>
+                    <span class="history-date">{{ appt.appointment_at.replace('T', ' ') }}</span>
+                    <h4 class="history-title">{{ appt.reason }}</h4>
+                    <p class="history-desc">
+                      With <strong>Dr. {{ appt.doctor_name or 'Staff Clinician' }}</strong> • 
+                      Status: <span style="text-transform: capitalize; font-weight: 600;">{{ appt.status }}</span>
+                    </p>
+                    {% if appt.visit_notes %}
+                      <div class="note-bubble">
+                        <strong>Doctor Notes:</strong> {{ appt.visit_notes }}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p style="color: var(--text-muted); font-style: italic; margin: 0;">No past consultations or appointments found.</p>
+            {% endif %}
+          </div>
+
+          <!-- Informational alert disclaimer -->
+          <div class="emergency-disclaimer">
+            <strong>Disclaimer:</strong> This dashboard is for informational and responder check-in reference only and does not constitute official professional medical advice. Always contact emergency services (e.g. 911 / local emergency number) directly in life-threatening scenarios.
+          </div>
+          
+          <div style="font-size: 0.75rem; text-align: center; color: var(--text-muted); margin-bottom: 2rem;">
+            Link Expiration Timestamp (UTC): {{ expires_at.strftime('%Y-%m-%d %H:%M:%S') }} • MedVault Secure QR Protocol.
+          </div>
+
         </div>
-      {% endfor %}
-    </div>
-    {% endif %}
 
-    <div class="emergency-info">
-      <h3>🤖 AI Medical Summary</h3>
-      <p>{{ medical_summary or "No medical summary available." }}</p>
-    </div>
-
-    <div class="section">
-      <p><strong>⏰ Expires:</strong> {{ expires_at.isoformat() if expires_at else "Unknown" }} (UTC)</p>
-      <p><em>This emergency access is temporary and will expire automatically.</em></p>
+      </div>
     </div>
   </body>
 </html>

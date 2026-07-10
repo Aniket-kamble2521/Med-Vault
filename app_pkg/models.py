@@ -2,7 +2,8 @@ from flask_login import UserMixin
 
 
 class User(UserMixin):
-    def __init__(self, user_id: int, username: str) -> None:
+    def __init__(self, user_id: int, username: str, portal_role: str) -> None:
         self.id = str(user_id)
         self.username = username
+        self.portal_role = (portal_role or "patient").strip().lower()
 

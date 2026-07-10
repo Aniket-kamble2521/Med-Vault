@@ -12,10 +12,10 @@ auth_bp = Blueprint("auth", __name__)
 @login_manager.user_loader
 def load_user(user_id: str):
     db = get_db()
-    row = db.execute("SELECT id, username FROM users WHERE id = ?", (user_id,)).fetchone()
+    row = db.execute("SELECT id, username, portal_role FROM users WHERE id = ?", (user_id,)).fetchone()
     if not row:
         return None
-    return User(row["id"], row["username"])
+    return User(row["id"], row["username"], row["portal_role"])
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -47,7 +47,7 @@ def register():
             flash("Account created. Please log in.")
             return redirect(url_for("auth.login", role=effective_role))
         except Exception:
-            flash("That username is already taken.")
+            flash("That username is already taken for this role.")
             return render_template("register.html", role=effective_role)
     return render_template("register.html", role=role)
 
@@ -62,13 +62,21 @@ def _login_role() -> str | None:
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        role = _login_role()
+        role = (_login_role() or "patient").lower()
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
         db = get_db()
-        row = db.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,)).fetchone()
+        row = db.execute("SELECT id, username, password_hash, portal_role FROM users WHERE username = ? AND portal_role = ?", (username, role)).fetchone()
         if not row:
-            flash("Invalid username or password.")
+            other_role = "patient" if role == "doctor" else "doctor"
+            other_row = db.execute("SELECT id FROM users WHERE username = ? AND portal_role = ?", (username, other_role)).fetchone()
+            if other_row:
+                if other_role == "patient":
+                    flash("This account is registered as a Patient. Please use the Patient Login page.")
+                else:
+                    flash("This account is registered as a Doctor. Please use the Doctor Login page.")
+            else:
+                flash("Invalid username or password.")
             return render_template("login.html", role=role)
 
         ok, needs_migration = verify_password(password, row["password_hash"])
@@ -79,23 +87,16 @@ def login():
             db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), row["id"]))
             db.commit()
 
-        login_user(User(row["id"], row["username"]))
-        effective_role = (role or "patient").lower()
-        if effective_role not in ("doctor", "patient"):
-            effective_role = "patient"
-        db.execute("UPDATE users SET portal_role = ? WHERE id = ?", (effective_role, row["id"]))
-        db.commit()
-
-        profile = db.execute("SELECT onboarding_done FROM users WHERE id = ?", (row["id"],)).fetchone()
-        if profile and int(profile["onboarding_done"]) == 0:
-            return redirect(url_for("core.onboarding"))
-        if effective_role == "doctor":
+        login_user(User(row["id"], row["username"], row["portal_role"]))
+        
+        db_role = (row["portal_role"] or "patient").lower()
+        if db_role == "doctor":
             return redirect(url_for("core.doctor_dashboard"))
         return redirect(url_for("core.dashboard"))
     return render_template("login.html", role=_login_role())
 
 
-@auth_bp.post("/logout")
+@auth_bp.route("/logout", methods=["GET", "POST"])
 def logout():
     logout_user()
     return redirect(url_for("core.index"))

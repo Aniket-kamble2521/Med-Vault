@@ -1,7 +1,7 @@
 {% extends "base_patient.html" %}
 {% block content %}
   <style>
-    /* Compact Dashboard Layout */
+    /* Premium Dashboard Grid Layout */
     .pd-main-grid {
       display: grid;
       grid-template-columns: 1fr 380px;
@@ -21,186 +21,60 @@
       gap: 1.5rem;
     }
     
-    /* Remove empty space */
-    .pd-banners, .pd-vitals {
-      display: none !important;
+    /* Collapsible sections styling */
+    .collapsible-section {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     
-    /* Compact overview */
-    .pd-health-overview {
-      margin-bottom: 1.5rem;
+    .dr-portal[data-theme="dark"] .collapsible-section {
+      background: var(--surface);
+      border-color: var(--border);
     }
     
-    .pd-overview-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1rem;
+    .collapsible-header {
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
     }
     
-    /* Remove any extra margins/padding */
-    .pd-wrap {
-      padding-bottom: 1rem !important;
+    .dr-portal[data-theme="dark"] .collapsible-header {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: var(--border);
     }
     
-    .pd-panel {
-      margin-bottom: 0 !important;
+    .collapsible-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text);
     }
     
-    .pd-qr-hero {
-      margin-bottom: 0 !important;
+    .collapsible-header-icon {
+      transition: transform 0.2s;
     }
     
-    /* Remove any empty space at bottom */
-    .pd-split-main:empty,
-    .pd-split-side:empty {
+    .collapsible-section.collapsed .collapsible-header-icon {
+      transform: rotate(-90deg);
+    }
+    
+    .collapsible-section.collapsed .collapsible-content {
       display: none;
     }
     
-    /* AI Health Assistant Section */
-    .pd-ai-section {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    
-    .pd-ai-content {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    
-    .pd-ai-feature {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: rgba(255,255,255,0.1);
-      border-radius: 8px;
-      transition: transform 0.2s;
-    }
-    
-    .pd-ai-feature:hover {
-      transform: translateY(-2px);
-    }
-    
-    .pd-ai-icon {
-      font-size: 2rem;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-    }
-    
-    .pd-ai-info h4 {
-      margin: 0 0 0.5rem 0;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-    
-    .pd-ai-info p {
-      margin: 0;
-      font-size: 0.875rem;
-      opacity: 0.9;
-    }
-    
-    .pd-btn-ai {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      padding: 0.75rem 1.5rem;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      transition: all 0.2s;
-    }
-    
-    .pd-btn-ai:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-1px);
-    }
-    
-    /* Health Analytics Section */
-    .pd-analytics-section {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    
-    .pd-analytics-content {
-      margin-top: 1rem;
-    }
-    
-    .pd-analytics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-    }
-    
-    .pd-analytics-card {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: rgba(255,255,255,0.1);
-      border-radius: 8px;
-      transition: transform 0.2s;
-    }
-    
-    .pd-analytics-card:hover {
-      transform: translateY(-2px);
-    }
-    
-    .pd-analytics-icon {
-      font-size: 2rem;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-    }
-    
-    .pd-analytics-info h4 {
-      margin: 0 0 0.5rem 0;
-      font-size: 1rem;
-      font-weight: 600;
-    }
-    
-    .pd-analytics-info p {
-      margin: 0;
-      font-size: 0.875rem;
-      opacity: 0.9;
-    }
-    
-    .pd-btn-analytics {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-      padding: 0.75rem 1.5rem;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      transition: all 0.2s;
-    }
-    
-    .pd-btn-analytics:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-1px);
+    .collapsible-content {
+      padding: 1.5rem;
     }
     
     @media (max-width: 1024px) {
@@ -208,355 +82,429 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Redesigned Premium Cards */
+    .premium-score-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 1.75rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .premium-score-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+      border-color: var(--accent);
+    }
+
+    .premium-emergency-card {
+      background: var(--surface);
+      border: 2px solid #ef4444;
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.04);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
     
-    @media (max-width: 768px) {
-      .pd-overview-grid {
-        grid-template-columns: 1fr;
-      }
+    .premium-emergency-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 35px rgba(239, 68, 68, 0.15);
+    }
+    
+    .emergency-badge {
+      background: #ef4444;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+    }
+
+    .qr-scanner-frame {
+      position: relative;
+      width: 170px;
+      height: 170px;
+      margin: 1rem auto;
+      border: 2px solid rgba(239, 68, 68, 0.2);
+      border-radius: 16px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.02);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .qr-scanner-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+      animation: scan 2s linear infinite;
+    }
+    
+    @keyframes scan {
+      0% { top: 0; }
+      50% { top: 100%; }
+      100% { top: 0; }
+    }
+    
+    .qr-actions-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .qr-action-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .qr-action-btn:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.03);
+      border-color: var(--text-muted);
+    }
+    .qr-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .dr-portal[data-theme="dark"] .qr-action-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.03);
     }
   </style>
-  
+
   <div class="pd-wrap">
+    <!-- Real-time Reminder Alert Container -->
+    <div id="live-appointment-banner" style="display: none;"></div>
+
     <header class="pd-hero">
       <h1 class="pd-hero-title">Welcome back, {{ greeting_name }}</h1>
       <p class="pd-hero-sub">Here's your health summary, upcoming care, and quick actions.</p>
     </header>
 
-    <!-- Health Overview Section -->
-    <section class="pd-health-overview">
-      <div class="pd-overview-grid">
-        <div class="pd-overview-card pd-overview-card--primary">
-          <div class="pd-overview-header">
-            <div class="pd-overview-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-              </svg>
-            </div>
-            <div class="pd-overview-title">
-              <h3>Health Score</h3>
-              <p>Overall wellness indicator</p>
-            </div>
-          </div>
-          <div class="pd-overview-content">
-            <div class="pd-score-display">
-              <span class="pd-score-value">{{ health_score.value }}</span>
-              <span class="pd-score-label">{{ health_score.label }}</span>
-            </div>
-            <div class="pd-score-bar">
-              <div class="pd-score-fill" style="width: {{ health_score.value }}%"></div>
-            </div>
-          </div>
-        </div>
+    <!-- Quick Access Hub Grid -->
+    <h2 style="font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 1rem 0; color: var(--text);">Quick Access Modules</h2>
+    <div class="quick-access-grid">
+      <a href="{{ url_for('core.patient_profile') }}" class="quick-access-card" style="border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent);">
+        <span class="quick-access-icon">👤</span>
+        <span class="quick-access-name" style="font-weight: 700;">My Passport</span>
+      </a>
+      <a href="{{ url_for('core.health_timeline') }}" class="quick-access-card">
+        <span class="quick-access-icon">📅</span>
+        <span class="quick-access-name">Timeline</span>
+      </a>
+      <a href="{{ url_for('core.medicine_reminders') }}" class="quick-access-card">
+        <span class="quick-access-icon">💊</span>
+        <span class="quick-access-name">Reminders</span>
+      </a>
+      <a href="{{ url_for('core.favorite_doctors') }}" class="quick-access-card">
+        <span class="quick-access-icon">🩺</span>
+        <span class="quick-access-name">Favorite Doctors</span>
+      </a>
+      <a href="{{ url_for('core.emergency_info') }}" class="quick-access-card">
+        <span class="quick-access-icon">🚨</span>
+        <span class="quick-access-name">Emergency Info</span>
+      </a>
+      <a href="{{ url_for('core.medical_documents') }}" class="quick-access-card">
+        <span class="quick-access-icon">📄</span>
+        <span class="quick-access-name">Documents</span>
+      </a>
+    </div>
 
-        <div class="pd-overview-card">
-          <div class="pd-overview-header">
-            <div class="pd-overview-icon pd-overview-icon--appointments">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <path d="M16 2v4M8 2v4M3 10h18"/>
-              </svg>
-            </div>
-            <div class="pd-overview-title">
-              <h3>Next Appointment</h3>
-              <p>Upcoming medical care</p>
-            </div>
-          </div>
-          <div class="pd-overview-content">
-            {% if first_appt %}
-              <div class="pd-appt-next">
-                <span class="pd-appt-doctor">{{ first_appt.doctor_name }}</span>
-                <span class="pd-appt-when">{{ first_appt.when_fmt }}</span>
-                <span class="pd-appt-type">{{ first_appt.badge }}</span>
-              </div>
-            {% else %}
-              <div class="pd-appt-empty">
-                <p>No appointments scheduled</p>
-                <a href="{{ url_for('core.book_appointment') }}" class="pd-link-sm">Book appointment</a>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="pd-overview-card">
-          <div class="pd-overview-header">
-            <div class="pd-overview-icon pd-overview-icon--records">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <path d="M14 2v6h6"/>
-              </svg>
-            </div>
-            <div class="pd-overview-title">
-              <h3>Medical Records</h3>
-              <p>Your health documents</p>
-            </div>
-          </div>
-          <div class="pd-overview-content">
-            <div class="pd-records-summary">
-              <div class="pd-records-count">
-                <span class="pd-records-number">{{ files|length }}</span>
-                <span class="pd-records-label">Total records</span>
-              </div>
-              {% if files %}
-                <div class="pd-records-recent">
-                  <span class="pd-records-date">{{ files[0].uploaded_label }}</span>
-                  <span class="pd-records-name">{{ files[0].filename[:20] }}...</span>
-                </div>
-              {% endif %}
-            </div>
-            <a href="#pd-reports" onclick="showUploadModal()" class="pd-link-sm">Upload new →</a>
-          </div>
-        </div>
-
-        <div class="pd-overview-card">
-          <div class="pd-overview-header">
-            <div class="pd-overview-icon pd-overview-icon--prescriptions">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4.8 2.3h.4c.4 0 .8.3.9.7l.7 2.7a3 3 0 001 1.6l2.6 2.2a5 5 0 001.6 3.7v4.9a2 2 0 01-2 2H14a2 2 0 01-2-2v-1.5"/>
-              </svg>
-            </div>
-            <div class="pd-overview-title">
-              <h3>Prescriptions</h3>
-              <p>Current medications</p>
-            </div>
-          </div>
-          <div class="pd-overview-content">
-            <div class="pd-prescriptions-summary">
-              <div class="pd-prescriptions-count">
-                <span class="pd-prescriptions-number">{{ rx_list|length }}</span>
-                <span class="pd-prescriptions-label">Active prescriptions</span>
-              </div>
-              {% if rx_list %}
-                <div class="pd-prescriptions-recent">
-                  <span class="pd-prescriptions-name">{{ rx_list[0].name }}</span>
-                  <span class="pd-prescriptions-dose">{{ rx_list[0].dose }}</span>
-                </div>
-              {% endif %}
-            </div>
-            <a href="#prescriptions-section" class="pd-link-sm">Manage all →</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
+    <!-- Main Workspace Grid -->
     <div class="pd-main-grid">
       <div class="pd-split-main">
-        <!-- AI Health Assistant Section -->
-        <section class="pd-panel pd-ai-section">
-          <div class="pd-panel-head">
-            <h2>
-              <svg class="pd-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-              </svg>
-              AI Health Assistant
-            </h2>
-            <a href="{{ url_for('core.patient_ai_assistant') }}" class="pd-link-sm">Get AI advice</a>
+        
+        <!-- Premium Emergency QR Card (Priority 1) -->
+        <div class="premium-emergency-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.5rem;">
+            <div style="flex: 1; min-width: 280px;">
+              <span class="emergency-badge">🚨 Emergency Access Card</span>
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.35rem; font-weight: 800; color: var(--text);">Secure Emergency QR Dossier</h3>
+              <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+                Responders can scan this time-limited QR code or follow the link during emergency diagnostics to access your blood type, chronic allergies, medications list, and medical documents.
+              </p>
+            </div>
+            
+            <!-- QR Result display -->
+            <div id="qr-result-section" style="text-align: center; min-width: 190px;">
+              <div class="qr-scanner-frame">
+                <div class="qr-scanner-line" id="qr-scanner-line" style="display: none;"></div>
+                <img id="qr-image" style="width: 140px; height: 140px; display: none;" alt="Emergency QR code" />
+                <div id="qr-placeholder" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-align: center; padding: 10px;">
+                  🔒 QR Not Generated
+                </div>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                Expires: <span id="qr-expiry" style="font-weight: 700; color: var(--text);">—</span>
+              </div>
+            </div>
           </div>
-          <div class="pd-ai-content">
-            <div class="pd-ai-feature">
-              <div class="pd-ai-icon">🤖</div>
-              <div class="pd-ai-info">
-                <h4>Personalized Health Insights</h4>
-                <p>Get AI-powered health recommendations based on your medical history and current symptoms</p>
-              </div>
-            </div>
-            <div class="pd-ai-feature">
-              <div class="pd-ai-icon">🩺</div>
-              <div class="pd-ai-info">
-                <h4>Symptom Analysis</h4>
-                <p>Describe your symptoms and receive personalized medical guidance</p>
-              </div>
-            </div>
-            <div class="pd-ai-feature">
-              <div class="pd-ai-icon">💊</div>
-              <div class="pd-ai-info">
-                <h4>Medication Review</h4>
-                <p>AI checks for potential interactions with your current medications</p>
-              </div>
-            </div>
-            <a href="{{ url_for('core.patient_ai_assistant') }}" class="pd-btn-ai">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-              </svg>
-              Try AI Assistant
-            </a>
-          </div>
-        </section>
 
-        <!-- Health Analytics Section -->
-        <section class="pd-panel pd-analytics-section">
-          <div class="pd-panel-head">
-            <h2>
-              <svg class="pd-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 3v18h18"/>
-                <path d="M18 17V9"/>
-                <path d="M13 17V5"/>
-                <path d="M8 17v-3"/>
-              </svg>
-              Health Analytics
-            </h2>
-            <a href="{{ url_for('core.patient_analytics') }}" class="pd-link-sm">View detailed analytics</a>
-          </div>
-          <div class="pd-analytics-content">
-            <div class="pd-analytics-grid">
-              <div class="pd-analytics-card">
-                <div class="pd-analytics-icon">📊</div>
-                <div class="pd-analytics-info">
-                  <h4>Health Trends</h4>
-                  <p>Track your vitals and health metrics over time</p>
-                </div>
-              </div>
-              <div class="pd-analytics-card">
-                <div class="pd-analytics-icon">📈</div>
-                <div class="pd-analytics-info">
-                  <h4>Progress Reports</h4>
-                  <p>Visualize your health journey with detailed charts</p>
-                </div>
-              </div>
-              <div class="pd-analytics-card">
-                <div class="pd-analytics-icon">🎯</div>
-                <div class="pd-analytics-info">
-                  <h4>Goals & Insights</h4>
-                  <p>AI-powered recommendations for better health outcomes</p>
-                </div>
-              </div>
-            </div>
-            <a href="{{ url_for('core.patient_analytics') }}" class="pd-btn-analytics">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 3v18h18"/>
-                <path d="M18 17V9"/>
-                <path d="M13 17V5"/>
-                <path d="M8 17v-3"/>
-              </svg>
-              View Analytics
-            </a>
-          </div>
-        </section>
-        <section class="pd-panel">
-          <div class="pd-panel-head">
-            <h2>
-              <svg class="pd-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              Upcoming appointments
-            </h2>
-            <a href="{{ url_for('core.book_appointment') }}" class="pd-link-sm">Book new</a>
-          </div>
-          {% for a in upcoming_items %}
-            <div class="pd-appt">
-              <div class="pd-appt-av" aria-hidden="true">{{ a.initials }}</div>
-              <div class="pd-appt-body">
-                <strong>{{ a.doctor_name }}{% if a.demo %}<span class="pd-demo-tag">sample</span>{% endif %}</strong>
-                <div class="pd-appt-meta">{{ a.specialization }}</div>
-                <span class="pd-appt-badge">{{ a.badge }}</span>
-              </div>
-              <div class="pd-appt-when">{{ a.when_fmt }}</div>
-            </div>
-          {% endfor %}
-        </section>
-
-        <section class="pd-panel" id="pd-reports">
-          <div class="pd-panel-head">
-            <h2>
-              <svg class="pd-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-              Medical reports
-            </h2>
-            <div class="pd-panel-actions">
-              <button type="button" class="pd-btn-primary pd-btn-sm" onclick="showUploadModal()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Upload report
+          <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <!-- Primary Actions -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="pd-btn-qr" id="btn-generate-qr" style="background: #ef4444; border: none; font-weight: 700; border-radius: 12px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.6rem 1.2rem; cursor: pointer; color: white;">
+                ⚡ Generate QR Code
               </button>
-              <a href="{{ url_for('core.dashboard') }}?q=" class="pd-link-sm">View all</a>
+              <button type="button" class="qr-action-btn" id="btn-fullscreen-qr" disabled>
+                🔍 Full Screen
+              </button>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="qr-action-btn" id="btn-copy-link" disabled>
+                🔗 Copy Link
+              </button>
+              <button type="button" class="qr-action-btn" id="btn-share-qr" disabled>
+                📤 Share
+              </button>
+              <button type="button" class="qr-action-btn" id="btn-download-qr" disabled>
+                💾 Download SVG
+              </button>
             </div>
           </div>
-          {% if files %}
-            {% for f in files[:5] %}
-              <div class="pd-report">
-                <span class="pd-report-ico" aria-hidden="true">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                </span>
-                <div class="pd-report-body">
-                  <div class="pd-report-title">{{ f.filename }}</div>
-                  <div class="pd-report-meta">
-                    <span class="pd-report-category">{{ f.category or 'Uncategorized' }}</span>
-                    <span class="pd-report-confidence">{{ f.category_confidence|int }}%</span>
-                    <span class="pd-report-date">{{ f.uploaded_label }}</span>
-                    {% if f.doc_source %}<span class="pd-report-source">{{ f.doc_source }}</span>{% endif %}
-                  </div>
-                </div>
-                <div class="pd-report-actions">
-                  <a href="{{ url_for('core.download_file', file_id=f.id) }}" class="pd-report-dl" title="Download" aria-label="Download {{ f.filename }}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                  </a>
-                  <button type="button" class="pd-report-delete" onclick="deleteFile({{ f.id }}, '{{ f.filename }}')" title="Delete" aria-label="Delete {{ f.filename }}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6V20a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6M8,6V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/></svg>
-                  </button>
-                </div>
+        </div>
+
+        <!-- Book Appointment & Upcoming Care (Priority 2) -->
+        <section class="pd-panel" style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 1.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); transition: all 0.3s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.35rem;">🩺</span> Appointment &amp; Provider Access
+            </h3>
+            <a href="{{ url_for('core.book_appointment') }}" class="pd-btn-primary pd-btn-sm" style="text-decoration: none; border-radius: 8px;">Book Appointment</a>
+          </div>
+          {% if first_appt %}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <strong style="color: #166534; font-size: 0.95rem; display: block;">Upcoming Visit: {{ first_appt.doctor_name }}</strong>
+                <span style="font-size: 0.8rem; color: #15803d; display: block; margin-top: 2px;">{{ first_appt.specialization }} • {{ first_appt.type }}</span>
               </div>
-            {% endfor %}
+              <div style="text-align: right;">
+                <span style="font-size: 0.9rem; font-weight: 700; color: #166534; display: block;">{{ first_appt.when_fmt }}</span>
+                <span style="background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 8px; text-transform: uppercase; margin-top: 4px; display: inline-block;">{{ first_appt.countdown }}</span>
+              </div>
+            </div>
           {% else %}
-            <div class="pd-reports-empty">
-              <div class="pd-empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
-              </div>
-              <h3>No medical reports yet</h3>
-              <p>Upload your medical documents and let AI categorize them automatically.</p>
-              <button type="button" class="pd-btn-primary" onclick="showUploadModal()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Upload your first report
-              </button>
+            <div style="text-align: center; padding: 1.5rem; border: 2px dashed var(--border); border-radius: 12px;">
+              <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: var(--text-muted);">No upcoming appointments scheduled.</p>
+              <a href="{{ url_for('core.book_appointment') }}" class="pd-btn-outline pd-btn-sm" style="text-decoration: none;">➕ Schedule a new consultation</a>
             </div>
           {% endif %}
         </section>
-      </div>
 
-      <aside class="pd-split-side">
-        <div class="pd-qr-hero" id="emergency-qr">
-          <div class="pd-qr-hero-label">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Priority
+        <!-- Today's Health Readings (Priority 3) -->
+        <section class="pd-panel" style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 1.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.35rem;">📊</span> Today's Health Readings
+            </h3>
+            <a href="{{ url_for('core.health_vitals') }}" class="pd-btn-primary pd-btn-sm" style="text-decoration: none; border-radius: 8px;">Log Vitals</a>
           </div>
-          <h3>Emergency check-in QR</h3>
-          <p>Generate a time-limited QR and link so responders can see your emergency medical summary when every second counts.</p>
-          <button type="button" class="pd-btn-qr" id="btn-generate-qr">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7h-7zM14 17h1M17 14v1"/></svg>
-            Generate emergency QR
-          </button>
-          <div id="qr-result" class="pd-qr-out hidden">
-            <img id="qr-image" alt="Emergency QR code" />
-            <p class="dr-hint" style="margin-top: 0.75rem"><a id="qr-link" target="_blank" rel="noreferrer"></a></p>
-            <p class="dr-hint">Expires (UTC): <span id="qr-expiry"></span></p>
-          </div>
-        </div>
-
-        <section class="pd-panel">
-          <div class="pd-panel-head">
-            <h2>
-              <svg class="pd-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              Active prescriptions
-            </h2>
-            <a href="#prescriptions-section" class="pd-link-sm">Manage</a>
-          </div>
-          {% for rx in rx_list %}
-            <div class="pd-rx">
-              <div class="pd-rx-top">
-                <span class="pd-rx-name">{{ rx.name }} {{ rx.dose }}{% if rx.demo %}<span class="pd-demo-tag">sample</span>{% endif %}</span>
-                <span class="pd-rx-active">Active</span>
+          
+          {% if latest_vitals.recorded_today %}
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem;">
+              <div style="background: #fdf2f8; padding: 0.75rem; border-radius: 10px; text-align: center;">
+                <span style="font-size: 0.7rem; color: #9d174d; font-weight: 700; text-transform: uppercase; display: block;">BP</span>
+                <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-top: 0.25rem;">{{ latest_vitals.bp }}</strong>
               </div>
-              <div class="pd-rx-sub">{{ rx.freq }} · Refill: {{ rx.refill }}</div>
-              <button onclick="showRefillModal('{{ rx.name }}', '{{ rx.dose }}')" class="pd-rx-refill">Refill</button>
+              <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 10px; text-align: center;">
+                <span style="font-size: 0.7rem; color: #0f766e; font-weight: 700; text-transform: uppercase; display: block;">Sugar</span>
+                <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-top: 0.25rem;">{{ latest_vitals.sugar }}</strong>
+              </div>
+              <div style="background: #f5f3ff; padding: 0.75rem; border-radius: 10px; text-align: center;">
+                <span style="font-size: 0.7rem; color: #6d28d9; font-weight: 700; text-transform: uppercase; display: block;">Heart Rate</span>
+                <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-top: 0.25rem;">{{ latest_vitals.hr }}</strong>
+              </div>
+              <div style="background: #eff6ff; padding: 0.75rem; border-radius: 10px; text-align: center;">
+                <span style="font-size: 0.7rem; color: #1d4ed8; font-weight: 700; text-transform: uppercase; display: block;">SpO₂</span>
+                <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-top: 0.25rem;">{{ latest_vitals.spo2 }}</strong>
+              </div>
+              <div style="background: #fffbeb; padding: 0.75rem; border-radius: 10px; text-align: center;">
+                <span style="font-size: 0.7rem; color: #b45309; font-weight: 700; text-transform: uppercase; display: block;">Temp</span>
+                <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-top: 0.25rem;">{{ latest_vitals.temp }}</strong>
+              </div>
             </div>
-          {% endfor %}
+            <div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+              Last entry: {{ latest_vitals.updated }}
+            </div>
+          {% else %}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1.25rem; border-radius: 12px; text-align: center;">
+              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #166534; font-weight: 500;">Your daily health logs keep your index details accurate.</p>
+              <a href="{{ url_for('core.health_vitals') }}" class="pd-btn-primary pd-btn-sm" style="text-decoration: none; background: #10b981; border: none;">Log Today's Vitals</a>
+            </div>
+          {% endif %}
         </section>
 
-        <div class="pd-score">
-          <h3>Health score</h3>
-          <div class="pd-score-val">{{ health_score.value }}</div>
-          <p class="pd-score-label">{{ health_score.label }}</p>
-          <div class="pd-score-bar"><span style="width: {{ health_score.value }}%"></span></div>
-          <p class="pd-score-note">You’re doing great — keep logging reports and vitals in Health modules for a fuller picture.</p>
-        </div>
-      </aside>
-    </div>
+        <!-- Medical Documents Card (NEW Module Card) -->
+        <section class="pd-panel" style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 1.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); transition: all 0.3s ease; cursor: pointer;" onclick="window.location.href='{{ url_for('core.medical_documents') }}'">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.35rem;">📂</span> Medical Documents Center
+            </h3>
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.25rem;">
+              Manage Records &rarr;
+            </span>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 1rem;">
+            <div style="background: rgba(var(--accent-rgb), 0.05); border: 1px solid rgba(var(--accent-rgb), 0.1); padding: 0.85rem; border-radius: 12px; text-align: center;">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; display: block;">Total Files</span>
+              <strong style="font-size: 1.5rem; color: var(--text); display: block; margin-top: 0.25rem;">{{ total_docs }}</strong>
+            </div>
+            
+            <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); padding: 0.85rem; border-radius: 12px; text-align: center;">
+              <span style="font-size: 0.75rem; color: #10b981; font-weight: 600; text-transform: uppercase; display: block;">New (7d)</span>
+              <strong style="font-size: 1.5rem; color: #10b981; display: block; margin-top: 0.25rem;">{{ recent_docs_count }}</strong>
+            </div>
+            
+            <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.1); padding: 0.85rem; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+              <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600; text-transform: uppercase; display: block;">Last Uploaded</span>
+              <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ last_upload_date }}</strong>
+            </div>
+          </div>
+        </section>
 
-    <details class="pd-tools dr-panel">
+        <!-- Upcoming Tasks (Collapsible) -->
+        <section class="collapsible-section" id="upcoming-tasks-section">
+          <div class="collapsible-header" onclick="toggleSection('upcoming-tasks-section')">
+            <h2>
+              <span style="font-size: 1.2rem;">✓</span>
+              Upcoming Tasks &amp; Timeline Checklist
+            </h2>
+            <span class="collapsible-header-icon">▼</span>
+          </div>
+          <div class="collapsible-content">
+            {% if upcoming_tasks %}
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for task in upcoming_tasks %}
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb;">
+                    <div style="display: flex; align-items: center; gap: 0.85rem;">
+                      <span style="font-size: 1.5rem;">{{ task.icon }}</span>
+                      <div>
+                        <strong style="color: var(--text);">{{ task.title }}</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">{{ task.time }}</div>
+                      </div>
+                    </div>
+                    {% if task.type == 'medication' %}
+                      <a href="{{ url_for('core.medicine_reminders') }}" class="pd-btn-primary pd-btn-sm" style="text-decoration: none;">View</a>
+                    {% else %}
+                      <a href="{{ url_for('core.health_timeline') }}" class="pd-btn-outline pd-btn-sm" style="text-decoration: none;">View Details</a>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="pd-empty-state" style="margin: 0; padding: 1.5rem;">
+                <div class="pd-empty-state-icon">✅</div>
+                <div class="pd-empty-state-title">All Done!</div>
+                <div class="pd-empty-state-desc" style="margin-bottom: 0;">You have no scheduled checkups, vaccine doses, or urgent tasks for today.</div>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+
+      <div class="pd-split-side">
+        <!-- Redesigned Premium Health Score Card (Priority 1 in Sidebar) -->
+        <div class="premium-score-card">
+          <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text); text-align: center;">Your Health Index</h3>
+          
+          <div class="circular-score-wrapper" style="position: relative; width: 120px; height: 120px; margin: 0 auto 1.25rem auto; display: flex; align-items: center; justify-content: center;">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="8" opacity="0.4"></circle>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="url(#scoreGrad)" stroke-width="8" 
+                      stroke-dasharray="314.16" stroke-dashoffset="{{ 314.16 - (health_score.value / 100 * 314.16) }}" 
+                      stroke-linecap="round" style="transition: stroke-dashoffset 1s ease-out; transform: rotate(-90deg); transform-origin: 50% 50%;"></circle>
+              <defs>
+                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent)"></stop>
+                  <stop offset="100%" stop-color="color-mix(in srgb, var(--accent) 70%, #10b981)"></stop>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <span style="font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1;">{{ health_score.value }}</span>
+              <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-top: 2px;">Score</span>
+            </div>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; text-align: center; margin-bottom: 1rem;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text);">Overall Grade: <span style="color: #10b981;">{{ health_score_grade }}</span></div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">
+              Trend: 
+              {% if health_score.value >= 75 %}
+                <span style="color: #10b981;">📈 Improving (+4% this week)</span>
+              {% elif health_score.value >= 55 %}
+                <span style="color: #f59e0b;">➡️ Stable</span>
+              {% else %}
+                <span style="color: #ef4444;">📉 Declining</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 1.25rem 0; text-align: center; font-style: italic;">
+            {{ health_score_data.suggestions[0] if health_score_data.suggestions else "Your health score is stable. Log more readings for continuous insights." }}
+          </p>
+
+          <a href="{{ url_for('core.health_score') }}" class="pd-btn-primary" style="display: block; text-align: center; text-decoration: none; font-size: 0.85rem; padding: 0.65rem; border-radius: 12px; font-weight: 600; width: 100%;">View Score Details</a>
+          
+          <div style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 0.75rem;">
+            Last calculated: {{ latest_vitals.updated }}
+          </div>
+        </div>
+
+        <!-- Recent Activity (Collapsible) (Priority 2 in Sidebar) -->
+        <section class="collapsible-section" id="recent-activity-section">
+          <div class="collapsible-header" onclick="toggleSection('recent-activity-section')">
+            <h2>
+              <span style="font-size: 1.2rem;">⏱</span>
+              Recent Activity
+            </h2>
+            <span class="collapsible-header-icon">▼</span>
+          </div>
+          <div class="collapsible-content">
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              {% for act in recent_activities %}
+                <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                  <span style="font-size: 1.25rem;">{{ act.icon }}</span>
+                  <div>
+                    <strong style="font-size: 0.9rem; color: var(--text); display: block;">{{ act.title }}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">{{ act.desc }}</span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+    <details class="pd-tools dr-panel" style="margin-top: 2rem;">
       <summary>Health tools — upload, profile &amp; reminders</summary>
       <div class="pd-tools-grid" style="margin-top: 1rem">
         <div>
@@ -573,16 +521,12 @@
             <input type="search" name="q" value="{{ search or '' }}" placeholder="Search files…" class="dr-search-input" autocomplete="off" />
           </form>
         </div>
-        <div id="pd-profile">
+        <div id="pd-profile" style="display: flex; flex-direction: column; gap: 0.75rem; justify-content: center;">
           <h3 class="dr-side-title">Medical profile</h3>
-          <form method="post" action="{{ url_for('core.update_profile') }}" class="dr-p-form">
-            <input class="dr-input" name="full_name" value="{{ user.full_name }}" placeholder="Full name" />
-            <input class="dr-input" name="blood_group" value="{{ user.blood_group }}" placeholder="Blood group" />
-            <textarea class="dr-input" name="allergies" rows="2" placeholder="Allergies">{{ user.allergies }}</textarea>
-            <textarea class="dr-input" name="medications" rows="2" placeholder="Medications">{{ user.medications }}</textarea>
-            <textarea class="dr-input" name="conditions" rows="2" placeholder="Conditions">{{ user.conditions }}</textarea>
-            <button class="dr-btn-gradient dr-btn-gradient--inline" type="submit">Save profile</button>
-          </form>
+          <p class="dr-hint">Manage your digital health passport, chronic diagnoses, lifestyle metrics, and emergency contacts in our unified portal.</p>
+          <a href="{{ url_for('core.patient_profile') }}" class="dr-btn-gradient dr-btn-gradient--inline" style="text-decoration: none; text-align: center; margin-top: 0.5rem; display: block;">
+            👤 Manage Passport Profile &rarr;
+          </a>
         </div>
         <div>
           <h3 class="dr-side-title">Reminder</h3>
@@ -601,7 +545,7 @@
         <div>
           <h3 class="dr-side-title">Insights</h3>
           <p class="dr-hint">{{ medical_summary }}</p>
-          <a href="{{ url_for('modules.roadmap') }}" class="dr-link">Open health modules →</a>
+          <a href="{{ url_for('core.health_vitals') }}" class="dr-link">Open health vitals →</a>
         </div>
       </div>
     </details>
@@ -643,24 +587,24 @@
   </div>
 
   <script>
+    // Collapsible sections helper
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.toggle('collapsed');
+      }
+    }
+
     function scrollToSection(sectionId) {
-      // Check if we're on the dashboard or modules page
-      if (window.location.pathname.includes('roadmap')) {
-        // We're already on the modules page, just scroll to the section
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      } else {
-        // We need to navigate to modules page first, then scroll
-        window.location.href = `{{ url_for('modules.roadmap') }}#${sectionId}`;
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
     function showRefillModal(medicineName, dosage) {
       if (confirm(`Request refill for ${medicineName} ${dosage}?\n\nThis will notify your pharmacy and send a request to your healthcare provider.`)) {
-        // Navigate to prescriptions section for refill action
-        window.location.href = '{{ url_for("modules.roadmap") }}#prescriptions-section';
+        window.location.href = '{{ url_for("core.medicine_reminders") }}';
       }
     }
 
@@ -668,6 +612,7 @@
       document.getElementById('uploadModal').style.display = 'flex';
     }
 
+    // Hide upload modal
     function hideUploadModal() {
       document.getElementById('uploadModal').style.display = 'none';
       clearFile();
@@ -734,12 +679,15 @@
       }
     });
 
-    // QR Code Generation
+    // QR Code Generation & Action Controls
+    let currentEmergencyUrl = '';
+    let currentQrImageUrl = '';
+
     document.getElementById('btn-generate-qr').addEventListener('click', async function() {
       const button = this;
-      const resultDiv = document.getElementById('qr-result');
       const qrImage = document.getElementById('qr-image');
-      const qrLink = document.getElementById('qr-link');
+      const qrPlaceholder = document.getElementById('qr-placeholder');
+      const qrScannerLine = document.getElementById('qr-scanner-line');
       const qrExpiry = document.getElementById('qr-expiry');
       
       button.disabled = true;
@@ -759,29 +707,35 @@
         
         const data = await response.json();
         
-        // Display QR code
+        currentQrImageUrl = data.qr_image_url;
+        currentEmergencyUrl = data.emergency_url;
+        
         qrImage.src = data.qr_image_url;
-        qrLink.href = data.emergency_url;
-        qrLink.textContent = data.emergency_url;
+        qrImage.style.display = 'block';
+        if (qrPlaceholder) qrPlaceholder.style.display = 'none';
+        if (qrScannerLine) qrScannerLine.style.display = 'block';
+        
         qrExpiry.textContent = new Date(data.expires_at).toLocaleString();
         
-        resultDiv.classList.remove('hidden');
-        button.textContent = 'Generate new QR';
+        // Enable action buttons
+        document.getElementById('btn-fullscreen-qr').disabled = false;
+        document.getElementById('btn-copy-link').disabled = false;
+        document.getElementById('btn-share-qr').disabled = false;
+        document.getElementById('btn-download-qr').disabled = false;
         
-        console.log('QR generated successfully:', data);
+        button.textContent = 'Regenerate QR';
         
       } catch (error) {
         console.error('Error generating QR:', error);
         button.textContent = 'Error - try again';
         
-        // Show error message
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message';
         errorDiv.textContent = 'Failed to generate QR code. Please try again.';
         errorDiv.style.color = 'red';
         errorDiv.style.marginTop = '10px';
+        errorDiv.style.fontSize = '0.8rem';
         
-        // Remove any existing error message
         const existingError = button.parentNode.querySelector('.error-message');
         if (existingError) {
           existingError.remove();
@@ -789,7 +743,6 @@
         
         button.parentNode.appendChild(errorDiv);
         
-        // Remove error after 5 seconds
         setTimeout(() => {
           if (errorDiv.parentNode) {
             errorDiv.remove();
@@ -800,5 +753,124 @@
         button.disabled = false;
       }
     });
+
+    // Copy Link action
+    document.getElementById('btn-copy-link').addEventListener('click', function() {
+      if (!currentEmergencyUrl) return;
+      navigator.clipboard.writeText(currentEmergencyUrl).then(() => {
+        const btn = document.getElementById('btn-copy-link');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '📋 Copied!';
+        setTimeout(() => btn.innerHTML = originalText, 2000);
+      });
+    });
+
+    // Share action
+    document.getElementById('btn-share-qr').addEventListener('click', function() {
+      if (!currentEmergencyUrl) return;
+      if (navigator.share) {
+        navigator.share({
+          title: 'My MedVault Emergency Profile',
+          text: 'Clinicians and responders can access my health records via this emergency link.',
+          url: currentEmergencyUrl
+        }).catch(err => console.log(err));
+      } else {
+        navigator.clipboard.writeText(currentEmergencyUrl).then(() => {
+          alert('Link copied to clipboard!');
+        });
+      }
+    });
+
+    // Download action
+    document.getElementById('btn-download-qr').addEventListener('click', function() {
+      if (!currentQrImageUrl) return;
+      const a = document.createElement('a');
+      a.href = currentQrImageUrl;
+      a.download = 'medvault-emergency-qr.svg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    // Fullscreen Modal logic
+    const fsModal = document.getElementById('qrFullscreenModal');
+    const fsImage = document.getElementById('qr-fullscreen-image');
+    
+    document.getElementById('btn-fullscreen-qr').addEventListener('click', function() {
+      if (!currentQrImageUrl) return;
+      fsImage.src = currentQrImageUrl;
+      fsModal.style.display = 'flex';
+    });
+
+    fsModal.addEventListener('click', function(e) {
+      if (e.target === this || e.target.classList.contains('close-fs-modal')) {
+        fsModal.style.display = 'none';
+      }
+    });
+  </script>
+
+  <!-- Full Screen QR Modal -->
+  <div id="qrFullscreenModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
+    <div style="background: white; border-radius: 24px; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; max-width: 450px; width: 90%;">
+      <button class="close-fs-modal" style="position: absolute; top: 1rem; right: 1rem; border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">✕</button>
+      <h3 style="margin: 0 0 1.5rem 0; font-size: 1.25rem; font-weight: 700; color: var(--text); text-align: center;">Emergency Medical QR</h3>
+      <div style="border: 2px solid #ef4444; border-radius: 16px; padding: 1rem; background: #fff;">
+        <img id="qr-fullscreen-image" style="width: 280px; height: 280px; display: block;" alt="Emergency QR Code" />
+      </div>
+      <p style="margin: 1.5rem 0 0 0; font-size: 0.8rem; text-align: center; color: var(--text-muted); line-height: 1.5;">
+        Instruct emergency responders or clinicians to scan this code to retrieve your critical medical profile instantly.
+      </p>
+    </div>
+  </div>
+
+  <!-- Reschedule Modal -->
+  <div id="rescheduleModal" class="pd-modal" style="display: none;">
+    <div class="pd-modal-content" style="max-width: 450px;">
+      <div class="pd-modal-header">
+        <h3>Reschedule Appointment</h3>
+        <button type="button" class="pd-modal-close" onclick="closeRescheduleModal()">&times;</button>
+      </div>
+      <div class="pd-modal-body">
+        <form id="rescheduleForm" method="post" action="">
+          <div class="pd-form-group" style="margin-bottom: 1.25rem;">
+            <label class="pd-form-label" for="resched_date" style="display:block; margin-bottom:0.5rem; font-weight:600;">Date *</label>
+            <input type="date" class="pd-form-input" id="resched_date" name="appointment_date" required style="width:100%; padding:0.75rem; border:1px solid #ddd; border-radius:6px;">
+          </div>
+          <div class="pd-form-group" style="margin-bottom: 1.5rem;">
+            <label class="pd-form-label" for="resched_time" style="display:block; margin-bottom:0.5rem; font-weight:600;">Time *</label>
+            <select class="pd-form-select" id="resched_time" name="appointment_time" required style="width:100%; padding:0.75rem; border:1px solid #ddd; border-radius:6px; background:white;">
+              <option value="">Select time</option>
+              <option value="09:00">9:00 AM</option>
+              <option value="09:30">9:30 AM</option>
+              <option value="10:00">10:00 AM</option>
+              <option value="10:30">10:30 AM</option>
+              <option value="11:00">11:00 AM</option>
+              <option value="11:30">11:30 AM</option>
+              <option value="14:00">2:00 PM</option>
+              <option value="14:30">2:30 PM</option>
+              <option value="15:00">3:00 PM</option>
+              <option value="15:30">3:30 PM</option>
+              <option value="16:00">4:00 PM</option>
+              <option value="16:30">4:30 PM</option>
+              <option value="17:00">5:00 PM</option>
+            </select>
+          </div>
+          <button class="pd-btn-primary pd-btn-full" type="submit" style="width: 100%;">Reschedule Session</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openRescheduleModal(apptId, currentDate, currentTime) {
+      const form = document.getElementById('rescheduleForm');
+      form.action = `/api/patient/appointments/${apptId}/reschedule`;
+      document.getElementById('resched_date').value = currentDate;
+      document.getElementById('resched_time').value = currentTime;
+      document.getElementById('rescheduleModal').style.display = 'flex';
+    }
+    function closeRescheduleModal() {
+      document.getElementById('rescheduleModal').style.display = 'none';
+    }
   </script>
 {% endblock %}

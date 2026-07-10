@@ -14,7 +14,7 @@
           {% if current_user.is_authenticated %}
             <a href="{{ url_for('core.dashboard') }}">Dashboard</a>
             <a href="{{ url_for('core.settings') }}">Settings</a>
-            <a href="{{ url_for('modules.roadmap') }}">Modules</a>
+            <a href="{{ url_for('core.health_vitals') }}">Health Vitals</a>
             <form action="{{ url_for('auth.logout') }}" method="post" class="inline">
               <button class="linklike" type="submit">Logout</button>
             </form>

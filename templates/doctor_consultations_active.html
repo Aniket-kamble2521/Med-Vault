@@ -1,0 +1,65 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Active Consultations</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Manage patients currently in the consultation room.</p>
+    </div>
+    <a href="{{ url_for('core.doctor_consultation_new') }}" class="dr-btn-gradient" style="text-decoration: none; padding: 0.6rem 1.2rem; font-size: 0.9rem; border-radius: 8px;">+ Start Consultation</a>
+  </div>
+
+  <div class="dr-panel" style="padding: 0; overflow: hidden;">
+    {% if items %}
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border); background: color-mix(in srgb, var(--border) 15%, transparent);">
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Patient Name</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Type</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Chief Complaint / Reason</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Time Started</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+              <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='color-mix(in srgb, var(--accent) 5%, transparent)'" onmouseout="this.style.backgroundColor='transparent'">
+                <td style="padding: 1rem; font-weight: bold; color: var(--text);">{{ it.name }}</td>
+                <td style="padding: 1rem; color: var(--text);">
+                  <span style="padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; background: {% if it.type == 'appointment' %}#3b82f6{% else %}#10b981{% endif %}; color: #ffffff;">
+                    {{ it.type }}
+                  </span>
+                </td>
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.95rem;">{{ it.reason }}</td>
+                <td style="padding: 1rem; color: var(--text);">{{ it.started_at }}</td>
+                <td style="padding: 1rem; text-align: right;">
+                  <form method="post" action="{{ url_for('core.complete_active_consultation', ctype=it.type, cid=it.id) }}" style="display: inline-flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Duration:
+                      <select name="duration" class="dr-input" style="display: inline-block; margin: 0; padding: 0.2rem 0.4rem; font-size: 0.8rem; width: auto;">
+                        <option value="15">15 mins</option>
+                        <option value="30" selected>30 mins</option>
+                        <option value="45">45 mins</option>
+                        <option value="60">60 mins</option>
+                      </select>
+                    </label>
+                    <button type="submit" class="dr-btn-gradient" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">End Consult</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="padding: 4rem 2rem; text-align: center;">
+        <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">🩺</span>
+        <h3 style="margin: 0; color: var(--text);">No Ongoing Consultations</h3>
+        <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem;">There are currently no patients checked in to the active consultation room.</p>
+        <a href="{{ url_for('core.doctor_consultation_new') }}" class="dr-btn-gradient" style="text-decoration: none; padding: 0.5rem 1rem;">Start Consultation Now</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

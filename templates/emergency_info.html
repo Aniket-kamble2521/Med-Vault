@@ -1,0 +1,235 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <h1 class="pd-page-title">Emergency Medical Information</h1>
+    <p class="pd-page-lead">Keep your emergency check-in profile updated so emergency responders can access crucial details instantly.</p>
+    
+    <div class="pd-main-grid" style="grid-template-columns: 350px 1fr;">
+      
+      <!-- Left side: Emergency QR and status -->
+      <div class="pd-split-side">
+        <div class="emergency-qr-container">
+          <div style="background: #ef4444; color: white; font-size: 0.8rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 20px; text-transform: uppercase; margin-bottom: 1rem;">
+            Emergency Responder Access
+          </div>
+          
+          <div class="emergency-qr-svg" id="emergency-qr-box">
+            {% if token %}
+              <img src="{{ url_for('emergency.qr_image', token=token) }}" alt="Emergency QR Code" style="width: 180px; height: 180px;" />
+            {% else %}
+              <div style="width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; background: #fee2e2; border-radius: 12px; font-size: 0.85rem; color: #991b1b;">
+                No Active QR. Click generate below.
+              </div>
+            {% endif %}
+          </div>
+          
+          <button class="pd-btn-primary pd-btn-full" id="btn-generate-info-qr" style="background: #ef4444;">
+            Generate Active QR Code
+          </button>
+          
+          <div id="info-qr-actions" style="margin-top: 1rem; display: {% if token %}flex{% else %}none{% endif %}; flex-direction: column; gap: 0.5rem; width: 100%;">
+            <button class="pd-btn-outline pd-btn-full" id="btn-fullscreen-qr" style="border-radius: 8px; font-weight: 600; padding: 0.6rem;">
+              🔍 Full Screen QR
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              <button class="pd-btn-outline" id="btn-download-qr" style="border-radius: 8px; font-weight: 600; padding: 0.5rem;">
+                💾 Download
+              </button>
+              <button class="pd-btn-outline" id="btn-share-qr" style="border-radius: 8px; font-weight: 600; padding: 0.5rem;">
+                🔗 Share Link
+              </button>
+            </div>
+          </div>
+          
+          <div id="info-qr-result" style="margin-top: 1rem; width: 100%; text-align: left; font-size: 0.8rem; display: {% if token %}block{% else %}none{% endif %};">
+            <div style="word-break: break-all; margin-bottom: 0.5rem;">
+              <strong>Link:</strong> <a id="info-qr-link" href="{% if token %}{{ url_for('emergency.emergency_view', token=token, _external=True) }}{% endif %}" target="_blank" style="color: #ef4444;">
+                {% if token %}{{ url_for('emergency.emergency_view', token=token, _external=True) }}{% endif %}
+              </a>
+            </div>
+            <div>
+              <strong>Expires:</strong> <span id="info-qr-expiry">{% if expires_at %}{{ expires_at }}{% endif %}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right side: Profile details -->
+      <div class="pd-split-main">
+        <div class="pd-panel">
+          <h2 class="dr-side-title" style="font-size: 1.15rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem;">Emergency Information Summary</h2>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div style="padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+              <strong style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Full Name</strong>
+              <span style="font-size: 1.15rem; font-weight: 700; color: var(--text);">{{ full_name or 'Not Provided' }}</span>
+            </div>
+            
+            <div style="padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+              <strong style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Blood Group</strong>
+              <span style="font-size: 1.15rem; font-weight: 700; color: #ef4444;">{{ blood_group or 'Not Provided' }}</span>
+            </div>
+            
+            <div style="padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; grid-column: span 2;">
+              <strong style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Primary Emergency Contact</strong>
+              <span style="font-size: 1.05rem; font-weight: 700; color: var(--text);">
+                {{ emergency_contact_name or 'Not Configured' }}
+              </span>
+              {% if emergency_contact_number %}
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">📞 Phone: {{ emergency_contact_number }}</div>
+              {% endif %}
+            </div>
+            
+            <div style="padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; grid-column: span 2;">
+              <strong style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Allergies</strong>
+              <div style="font-size: 0.95rem; color: var(--text); line-height: 1.4; margin-top: 0.25rem;">
+                {{ allergies or 'No known severe allergies' }}
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 1.5rem;">
+            <a href="{{ url_for('core.dashboard') }}#pd-profile" class="pd-btn-outline" style="text-decoration: none;">
+              Update Emergency Details
+            </a>
+          </div>
+        </div>
+        
+        <div class="pd-panel">
+          <h3 class="dr-side-title" style="margin-bottom: 0.75rem;">Responding Personnel Info</h3>
+          <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-muted); margin: 0;">
+            Responders scanning the check-in QR code will view a read-only screen showing your name, blood group, emergency contacts, list of allergies, current active medications, and any chronic medical conditions. They will not have login access to your personal files or other modules.
+          </p>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('btn-generate-info-qr').addEventListener('click', async function() {
+      const button = this;
+      const resultDiv = document.getElementById('info-qr-result');
+      const qrBox = document.getElementById('emergency-qr-box');
+      const qrLink = document.getElementById('info-qr-link');
+      const qrExpiry = document.getElementById('info-qr-expiry');
+      
+      button.disabled = true;
+      button.textContent = 'Generating...';
+      
+      try {
+        const response = await fetch('{{ url_for("emergency.generate_emergency_qr") }}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) throw new Error("HTTP error");
+        
+        const data = await response.json();
+        
+        qrBox.innerHTML = `<img src="${data.qr_image_url}" alt="Emergency QR Code" style="width: 180px; height: 180px;" />`;
+        qrLink.href = data.emergency_url;
+        qrLink.textContent = data.emergency_url;
+        qrExpiry.textContent = new Date(data.expires_at).toLocaleString();
+        
+        resultDiv.style.display = 'block';
+        document.getElementById('info-qr-actions').style.display = 'flex';
+        button.textContent = 'Generate New QR';
+      } catch (err) {
+        console.error("QR Code Generation failed", err);
+        button.textContent = 'Failed - Try again';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    function getQrImageSrc() {
+      const img = document.querySelector('#emergency-qr-box img');
+      return img ? img.src : null;
+    }
+
+    function getQrLink() {
+      const link = document.getElementById('info-qr-link');
+      return link ? link.href : null;
+    }
+
+    // Full screen
+    document.getElementById('btn-fullscreen-qr').addEventListener('click', function() {
+      const src = getQrImageSrc();
+      if (!src) return;
+      document.getElementById('fullscreen-qr-container').innerHTML = `<img src="${src}" alt="Large Emergency QR" style="width: 280px; height: 280px; display: block;" />`;
+      document.getElementById('fullscreenQrModal').style.display = 'flex';
+    });
+
+    function closeFullscreenQr() {
+      document.getElementById('fullscreenQrModal').style.display = 'none';
+    }
+
+    // Download QR code image
+    document.getElementById('btn-download-qr').addEventListener('click', async function() {
+      const src = getQrImageSrc();
+      if (!src) return;
+      try {
+        const response = await fetch(src);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = 'emergency_qr.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error("Failed to download QR code", err);
+        window.open(src, '_blank');
+      }
+    });
+
+    // Share link
+    document.getElementById('btn-share-qr').addEventListener('click', async function() {
+      const url = getQrLink();
+      if (!url) return;
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'MedVault Emergency Medical Profile',
+            text: 'First responder link to my medical profile',
+            url: url
+          });
+        } catch (err) {
+          console.log("Share cancelled or failed", err);
+        }
+      } else {
+        try {
+          await navigator.clipboard.writeText(url);
+          alert("Emergency profile link copied to clipboard!");
+        } catch (err) {
+          console.error("Failed to copy link", err);
+          alert("Link is: " + url);
+        }
+      }
+    });
+  </script>
+
+  <!-- Full Screen QR Modal Overlay -->
+  <div id="fullscreenQrModal" class="alarm-overlay" style="display: none; align-items: center; justify-content: center; z-index: 100000; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px);">
+    <div style="background: white; border-radius: 24px; padding: 2rem; text-align: center; max-width: 440px; width: 100%; border: 1px solid rgba(255,255,255,0.1); position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+      <button onclick="closeFullscreenQr()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #475569;">✕</button>
+      <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f172a;">Emergency Medical QR</h3>
+      <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1.5rem;">Present this QR code to medical personnel or first responders.</p>
+      
+      <div id="fullscreen-qr-container" style="display: inline-block; padding: 1.5rem; background: #f8fafc; border-radius: 16px; border: 1px dashed #cbd5e1; margin-bottom: 1.5rem;">
+        <!-- Large image inside -->
+      </div>
+      
+      <div>
+        <button onclick="closeFullscreenQr()" class="alarm-btn alarm-btn-primary" style="margin: 0 auto; padding: 0.6rem 2rem; border-radius: 8px;">Close</button>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <h1 class="pd-page-title">Health Trends</h1>
+    <p class="pd-page-lead">Visualize your physiological changes, vital measurements, and monthly health progress.</p>
+    
+    {% if vitals %}
+      <!-- Layout with charts -->
+      <div style="display: flex; flex-direction: column; gap: 2rem;">
+        
+        <!-- Grid of charts -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem;">
+          <div class="pd-panel">
+            <h3 class="dr-side-title" style="margin-bottom: 1rem;">Weight Trend (kg)</h3>
+            <div style="position: relative; height: 260px;">
+              <canvas id="weightChart"></canvas>
+            </div>
+          </div>
+          <div class="pd-panel">
+            <h3 class="dr-side-title" style="margin-bottom: 1rem;">Blood Pressure Trend (mmHg)</h3>
+            <div style="position: relative; height: 260px;">
+              <canvas id="bpChart"></canvas>
+            </div>
+          </div>
+          <div class="pd-panel">
+            <h3 class="dr-side-title" style="margin-bottom: 1rem;">Blood Sugar Trend (mg/dL)</h3>
+            <div style="position: relative; height: 260px;">
+              <canvas id="sugarChart"></canvas>
+            </div>
+          </div>
+          <div class="pd-panel">
+            <h3 class="dr-side-title" style="margin-bottom: 1rem;">Heart Rate Trend (bpm)</h3>
+            <div style="position: relative; height: 260px;">
+              <canvas id="hrChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Action to add new logs -->
+        <div class="pd-panel">
+          <h2 class="dr-side-title" style="font-size: 1.15rem; margin-bottom: 0.75rem;">Log New Vitals</h2>
+          <form method="post" action="{{ url_for('modules.add_vitals') }}" class="dr-p-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+            <div>
+              <label class="dr-hint">Date & Time</label>
+              <input class="dr-input" type="datetime-local" name="logged_at" required />
+            </div>
+            <div>
+              <label class="dr-hint">Systolic BP</label>
+              <input class="dr-input" type="number" name="bp_systolic" placeholder="e.g. 120" />
+            </div>
+            <div>
+              <label class="dr-hint">Diastolic BP</label>
+              <input class="dr-input" type="number" name="bp_diastolic" placeholder="e.g. 80" />
+            </div>
+            <div>
+              <label class="dr-hint">Blood Sugar</label>
+              <input class="dr-input" type="number" step="0.1" name="sugar" placeholder="e.g. 95" />
+            </div>
+            <div>
+              <label class="dr-hint">Heart Rate</label>
+              <input class="dr-input" type="number" name="heart_rate" placeholder="e.g. 72" />
+            </div>
+            <div>
+              <label class="dr-hint">Weight (kg)</label>
+              <input class="dr-input" type="number" step="0.1" name="weight" placeholder="e.g. 70" />
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <label class="dr-hint">Symptoms Summary</label>
+              <input class="dr-input" type="text" name="symptoms" placeholder="How do you feel today?" />
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <button class="pd-btn-primary" type="submit">Log Vitals</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+      <script>
+        (function() {
+          const vitals = {{ vitals | tojson }};
+          const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#3b82f6";
+          
+          const labels = vitals.map(v => v.date_label);
+          const weights = vitals.map(v => v.weight || null);
+          const systolic = vitals.map(v => v.bp_systolic || null);
+          const diastolic = vitals.map(v => v.bp_diastolic || null);
+          const sugar = vitals.map(v => v.sugar || null);
+          const heartRate = vitals.map(v => v.heart_rate || null);
+          
+          const chartConfig = (label, data, color, fill=false) => ({
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: label,
+                data: data,
+                borderColor: color,
+                backgroundColor: color + '15',
+                tension: 0.3,
+                fill: fill,
+                spanGaps: true
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: false }
+              }
+            }
+          });
+          
+          new Chart(document.getElementById("weightChart"), chartConfig("Weight (kg)", weights, "#8b5cf6", true));
+          
+          new Chart(document.getElementById("bpChart"), {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Systolic",
+                  data: systolic,
+                  borderColor: "#ef4444",
+                  tension: 0.3,
+                  spanGaps: true
+                },
+                {
+                  label: "Diastolic",
+                  data: diastolic,
+                  borderColor: "#3b82f6",
+                  tension: 0.3,
+                  spanGaps: true
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: false }
+              }
+            }
+          });
+          
+          new Chart(document.getElementById("sugarChart"), chartConfig("Blood Sugar (mg/dL)", sugar, "#f59e0b", true));
+          new Chart(document.getElementById("hrChart"), chartConfig("Heart Rate (bpm)", heartRate, "#10b981", false));
+        })();
+      </script>
+      
+    {% else %}
+      <!-- Empty state when no data exists -->
+      <div class="pd-empty-state">
+        <div class="pd-empty-state-icon">📈</div>
+        <div class="pd-empty-state-title">No Vitals Data Logged</div>
+        <div class="pd-empty-state-desc">Record your first vital readings to begin tracking weight, blood pressure, blood sugar, and heart rate over time.</div>
+        
+        <div class="pd-panel" style="width: 100%; max-width: 500px; text-align: left; margin-top: 1.5rem;">
+          <h3 class="dr-side-title" style="margin-bottom: 1rem;">Log Vitals Now</h3>
+          <form method="post" action="{{ url_for('modules.add_vitals') }}" class="dr-p-form">
+            <input class="dr-input" type="datetime-local" name="logged_at" required style="margin-bottom: 0.75rem;" />
+            <div class="dr-p-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <input class="dr-input" type="number" name="bp_systolic" placeholder="Systolic BP" />
+              <input class="dr-input" type="number" name="bp_diastolic" placeholder="Diastolic BP" />
+            </div>
+            <div class="dr-p-form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <input class="dr-input" type="number" step="0.1" name="sugar" placeholder="Sugar" />
+              <input class="dr-input" type="number" name="heart_rate" placeholder="Heart Rate" />
+              <input class="dr-input" type="number" step="0.1" name="weight" placeholder="Weight (kg)" />
+            </div>
+            <textarea class="dr-input" name="symptoms" rows="2" placeholder="Symptoms / Journal Entry" style="margin-bottom: 0.75rem;"></textarea>
+            <button class="pd-btn-primary pd-btn-full" type="submit">Submit & Start Tracking</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  
+  <script>
+    // Autofill current time into date input
+    document.addEventListener("DOMContentLoaded", () => {
+      const inputs = document.querySelectorAll('input[type="datetime-local"]');
+      inputs.forEach(input => {
+        if (!input.value) {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          input.value = now.toISOString().slice(0, 16);
+        }
+      });
+    });
+  </script>
+{% endblock %}

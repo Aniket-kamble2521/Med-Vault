@@ -1,0 +1,1245 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell emergency-profile-container">
+  
+  <!-- Critical Alert Banner -->
+  <div class="emergency-profile-banner">
+    <div class="banner-pulse"></div>
+    <span class="banner-title">🚨 SECURE EMERGENCY PROTOCOL ACTIVE</span>
+    <span class="banner-expiry">Session Expiry: {{ expires_at.strftime('%I:%M %p UTC') }}</span>
+  </div>
+
+  <!-- Quick Access Back Link -->
+  <div style="margin: 1.5rem 0 1rem;">
+    <a href="{{ url_for('emergency.doctor_emergency_scanner') }}" class="dr-back-link">← Return to Emergency QR Scanner</a>
+  </div>
+
+  <div class="emergency-dashboard-grid">
+    
+    <!-- Left Column: Patient Passport & Actions -->
+    <div class="dashboard-side">
+      <!-- Patient Card -->
+      <div class="premium-card patient-passport-card">
+        <div class="card-glow-red"></div>
+        <div class="avatar-container">
+          <div class="avatar-initials-large">
+            {% if full_name %}
+              {{ full_name[0] }}{{ full_name.split(' ')[1][0] if (full_name.split(' ') | length) > 1 else '' }}
+            {% else %}
+              PT
+            {% endif %}
+          </div>
+          <span class="blood-badge">{{ blood_group }}</span>
+        </div>
+        <h2 class="patient-name">{{ full_name }}</h2>
+        <div class="patient-meta-row">
+          <span class="meta-label">ID:</span>
+          <span class="meta-value">{{ user_id }}</span>
+        </div>
+        <div class="patient-meta-row">
+          <span class="meta-label">Age / Gender:</span>
+          <span class="meta-value">{{ profile.age or 'N/A' }} yrs / {{ profile.gender or 'N/A' }}</span>
+        </div>
+        <div class="patient-meta-row">
+          <span class="meta-label">DOB:</span>
+          <span class="meta-value">{{ profile.dob or 'N/A' }}</span>
+        </div>
+        
+        <div class="divider-line"></div>
+        
+        <div class="emergency-contact-box">
+          <div class="contact-box-title">🚨 EMERGENCY CONTACT</div>
+          <div class="contact-name">{{ profile.emergency_contact_name or 'Not Specified' }}</div>
+          <div class="contact-relation">Relationship: Contact Person</div>
+          <div class="contact-phone">{{ profile.emergency_contact_number or 'Not Specified' }}</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="premium-card" style="margin-top: 1.5rem;">
+        <h3 class="side-card-title">Quick Actions</h3>
+        <div class="action-buttons-list">
+          <button class="action-btn btn-action-red" onclick="window.print()">
+            🖨️ Print Emergency Summary
+          </button>
+          <a href="{{ url_for('core.doctor_consultation_new') }}?patient_name={{ full_name }}" class="action-btn btn-action-blue" style="text-align: center; text-decoration: none;">
+            💼 Start Emergency Consultation
+          </a>
+          {% if profile.emergency_contact_number %}
+            <a href="tel:{{ profile.emergency_contact_number }}" class="action-btn btn-action-secondary" style="text-align: center; text-decoration: none;">
+              📞 Call Emergency Contact
+            </a>
+          {% endif %}
+          <button class="action-btn btn-action-secondary" onclick="copyPatientId('{{ user_id }}')">
+            📋 Copy Patient ID
+          </button>
+          <a href="#documents-viewer-section" class="action-btn btn-action-secondary" style="text-align: center; text-decoration: none;">
+            📂 View Medical Documents
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Panel -->
+    <div class="dashboard-main">
+      
+      <!-- Health Score & Vitals Row -->
+      <div class="vitals-kpis-grid">
+        <!-- Health Score gauge -->
+        <div class="premium-card vital-kpi-card glass-kpi-red">
+          <div class="kpi-gauge-wrap">
+            <svg width="60" height="60" viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(239, 68, 68, 0.1)" stroke-width="3.5"/>
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="{{ health_score_val }}, 100"/>
+            </svg>
+            <div class="gauge-percentage">{{ health_score_val }}</div>
+          </div>
+          <div class="kpi-meta">
+            <span class="kpi-title">Health Score</span>
+            <span class="kpi-sub">Grade: {{ health_score_grade }}</span>
+          </div>
+        </div>
+
+        <!-- Heart Rate KPI -->
+        <div class="premium-card vital-kpi-card">
+          <span class="kpi-icon-label">❤️</span>
+          <div class="kpi-value-container">
+            <div class="kpi-value">{{ vitals[0].heart_rate if vitals and vitals[0].heart_rate else 'N/A' }} <span class="kpi-unit">bpm</span></div>
+            <div class="kpi-title">Heart Rate</div>
+          </div>
+        </div>
+
+        <!-- Blood Pressure KPI -->
+        <div class="premium-card vital-kpi-card">
+          <span class="kpi-icon-label">🩸</span>
+          <div class="kpi-value-container">
+            <div class="kpi-value">
+              {% if vitals and vitals[0].bp_systolic and vitals[0].bp_diastolic %}
+                {{ vitals[0].bp_systolic }}/{{ vitals[0].bp_diastolic }}
+              {% else %}
+                N/A
+              {% endif %}
+              <span class="kpi-unit">mmHg</span>
+            </div>
+            <div class="kpi-title">Blood Pressure</div>
+          </div>
+        </div>
+
+        <!-- Oxygen Saturation KPI -->
+        <div class="premium-card vital-kpi-card">
+          <span class="kpi-icon-label">💨</span>
+          <div class="kpi-value-container">
+            <div class="kpi-value">{{ vitals[0].spo2 if vitals and vitals[0].spo2 else 'N/A' }} <span class="kpi-unit">%</span></div>
+            <div class="kpi-title">Oxygen SpO2</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical Alerts Panel -->
+      <div class="premium-card critical-alerts-card" style="margin-top: 1.5rem;">
+        <h3 class="alerts-card-title">🚨 Patient Clinical Alerts</h3>
+        <div class="alerts-grid">
+          <div class="alert-box-item alert-border-red">
+            <div class="alert-box-header">⚡ ALLERGIES</div>
+            <p class="alert-box-text">{{ allergies }}</p>
+            {% if allergies_registry %}
+              <div class="allergy-tags-list">
+                {% for a in allergies_registry %}
+                  <span class="allergy-tag severity-{{ a.severity|lower }}">{{ a.allergy_name }} ({{ a.severity }})</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="alert-box-item alert-border-orange">
+            <div class="alert-box-header">🤒 CHRONIC DISEASES &amp; CONDITIONS</div>
+            <p class="alert-box-text">{{ conditions or profile.existing_diseases or 'No chronic diseases recorded.' }}</p>
+          </div>
+
+          <div class="alert-box-item alert-border-blue">
+            <div class="alert-box-header">💊 CURRENT MEDICATIONS</div>
+            <p class="alert-box-text">{{ medications or 'No self-reported medications.' }}</p>
+            {% if prescriptions %}
+              <div class="prescriptions-mini-list">
+                {% for p in prescriptions[:4] %}
+                  <div class="mini-rx-item">📌 {{ p.medicine_name }} - <span style="font-size:0.75rem;">{{ p.dosage }} ({{ p.frequency }})</span></div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="alert-box-item alert-border-green">
+            <div class="alert-box-header">🫁 ORGAN DONOR STATUS</div>
+            <p class="alert-box-text" style="font-weight:700; font-size:1.1rem; color:#10b981;">
+              🌟 {{ profile.organ_donor or 'Not Specified' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Emergency Clinical Summary -->
+      <div class="premium-card ai-summary-card" style="margin-top: 1.5rem;">
+        <div class="ai-summary-header">
+          <div class="ai-logo-pill">🤖 CLINICAL AI ANALYSIS</div>
+          <span class="ai-summary-disclaimer">ℹ️ Disclaimer: AI generated summary. Supports, but does not replace, clinical judgment.</span>
+        </div>
+        <div class="ai-summary-body">
+          {{ ai_summary | safe | replace('\n', '<br>') }}
+        </div>
+      </div>
+
+      <!-- Health Status Details (Secondary Vitals) -->
+      <div class="premium-card" style="margin-top: 1.5rem;">
+        <h3 class="card-section-title">📊 Health Status &amp; Vitals History</h3>
+        <div class="vitals-table-wrapper">
+          <table class="vitals-history-table">
+            <thead>
+              <tr>
+                <th>Date Logged</th>
+                <th>BP (mmHg)</th>
+                <th>Heart Rate (bpm)</th>
+                <th>Blood Sugar (mg/dL)</th>
+                <th>Oxygen (SpO2)</th>
+                <th>Temperature (°C)</th>
+                <th>Weight</th>
+                <th>Symptoms</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if vitals %}
+                {% for v in vitals %}
+                  <tr>
+                    <td><strong>{{ v.logged_at }}</strong></td>
+                    <td>{{ v.bp_systolic or '-' }}/{{ v.bp_diastolic or '-' }}</td>
+                    <td>{{ v.heart_rate or '-' }}</td>
+                    <td>{{ v.sugar or '-' }}</td>
+                    <td>{{ v.spo2 or '-' }}%</td>
+                    <td>{{ v.temperature or '-' }}°C</td>
+                    <td>{{ v.weight or '-' }} kg</td>
+                    <td class="text-truncate-cell" title="{{ v.symptoms }}">{{ v.symptoms or 'None' }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="8" style="text-align:center; font-style:italic; padding: 2rem;">No vital logs recorded.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Medical Documents Section -->
+      <div class="premium-card" id="documents-viewer-section" style="margin-top: 1.5rem;">
+        <div class="documents-header">
+          <h3 class="card-section-title">📂 Patient Medical Documents</h3>
+          <div class="doc-search-filters">
+            <input type="text" id="doc-search-input" class="premium-input doc-search-box" placeholder="Search documents..." onkeyup="filterDocuments()" />
+            <select id="doc-category-filter" class="premium-input doc-filter-dropdown" onchange="filterDocuments()">
+              <option value="ALL">All Categories</option>
+              <option value="Prescription">Prescriptions</option>
+              <option value="Blood Report">Blood Reports</option>
+              <option value="X-Ray">X-Rays</option>
+              <option value="MRI">MRI</option>
+              <option value="CT Scan">CT Scans</option>
+              <option value="ECG">ECG / EKG</option>
+              <option value="Ultrasound">Ultrasound</option>
+              <option value="Vaccination">Vaccination Records</option>
+              <option value="Discharge Summary">Discharge Summaries</option>
+              <option value="Uncategorized">Uncategorized</option>
+            </select>
+            <select id="doc-sort-filter" class="premium-input doc-filter-dropdown" onchange="sortDocuments()">
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="name-asc">Name A-Z</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="doc-grid" id="documents-grid-container">
+          {% if files %}
+            {% for file in files %}
+              <div class="doc-card" data-id="{{ file.id }}" data-name="{{ file.filename|lower }}" data-category="{{ file.category }}" data-date="{{ file.uploaded_at }}">
+                <div class="doc-card-body">
+                  <div class="doc-category-badge">{{ file.category or 'Uncategorized' }}</div>
+                  <h4 class="doc-file-name" title="{{ file.filename }}">{{ file.filename }}</h4>
+                  <div class="doc-meta-footer">
+                    <span>Uploaded: {{ file.uploaded_at }}</span>
+                    <span>Size: {{ (file.file_size / 1024)|round(1) if file.file_size else 'N/A' }} KB</span>
+                  </div>
+                </div>
+                <div class="doc-card-actions">
+                  <button type="button" class="doc-action-btn" onclick="openFilePreview('{{ file.id }}', '{{ file.filename }}')">👁️ Preview</button>
+                  <a href="{{ url_for('emergency.doctor_emergency_download_file', file_id=file.id) }}" class="doc-action-btn" style="text-decoration:none; text-align:center;">📥 Download</a>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-doc-state" id="doc-empty-state">No uploaded medical documents found for this patient.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Consultation & Appointment History -->
+      <div class="premium-card" style="margin-top: 1.5rem;">
+        <h3 class="card-section-title">🏥 Consultation &amp; Visit History</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <!-- Appointments -->
+          <div>
+            <h4 style="margin: 0 0 0.75rem; font-weight:700; color:var(--text);">Recent Appointments</h4>
+            <div class="mini-history-list">
+              {% if appointments %}
+                {% for appt in appointments %}
+                  <div class="mini-history-item">
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:600;">
+                      <span>📅 {{ appt.appointment_at }}</span>
+                      <span class="appt-status-badge status-{{ appt.status|lower }}">{{ appt.status }}</span>
+                    </div>
+                    <div style="font-size:0.8rem; margin-top:0.2rem; color:var(--text-muted);">
+                      Dr. {{ appt.doctor_name or 'Staff' }} - {{ appt.reason }}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div style="font-size:0.8rem; color:var(--text-muted); font-style:italic; padding: 1rem 0;">No appointments logged.</div>
+              {% endif %}
+            </div>
+          </div>
+          <!-- Vaccinations -->
+          <div>
+            <h4 style="margin: 0 0 0.75rem; font-weight:700; color:var(--text);">Vaccination Records</h4>
+            <div class="mini-history-list">
+              {% if vaccinations %}
+                {% for v in vaccinations %}
+                  <div class="mini-history-item">
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:600;">
+                      <span>💉 {{ v.vaccine_name }}</span>
+                      <span class="appt-status-badge status-{{ v.status|lower }}">{{ v.status }}</span>
+                    </div>
+                    <div style="font-size:0.8rem; margin-top:0.2rem; color:var(--text-muted);">
+                      Dose: {{ v.dose_info }} | Due: {{ v.due_date }}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div style="font-size:0.8rem; color:var(--text-muted); font-style:italic; padding: 1rem 0;">No vaccination records.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Premium Document Preview Modal Viewer Overlay -->
+<div class="premium-modal-overlay" id="preview-modal" style="display:none; align-items:center; justify-content:center;">
+  <div class="preview-modal-container">
+    <div class="preview-modal-header">
+      <h3 id="preview-title" style="margin:0; font-weight:800; font-size:1.15rem; color:white; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 70%;">Document Viewer</h3>
+      <div class="preview-toolbar-actions">
+        <button type="button" class="preview-tool-btn" onclick="zoomPreview(1.2)">🔍 Zoom In</button>
+        <button type="button" class="preview-tool-btn" onclick="zoomPreview(0.8)">🔍 Zoom Out</button>
+        <button type="button" class="preview-tool-btn" onclick="printPreviewDocument()">🖨️ Print</button>
+        <button type="button" class="preview-close-btn" onclick="closeFilePreview()">❌ Close</button>
+      </div>
+    </div>
+    <div class="preview-modal-body">
+      <!-- Loader Spinner -->
+      <div id="preview-loading-skeleton" class="skeleton-loader-container">
+        <div class="skeleton-circle"></div>
+        <div class="skeleton-line-long"></div>
+        <div class="skeleton-line-short"></div>
+      </div>
+      <!-- Frame Container -->
+      <div class="preview-content-frame" id="preview-frame-container">
+        <!-- Content injected dynamically via JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentZoom = 1.0;
+  let activePreviewUrl = "";
+
+  function copyPatientId(id) {
+    navigator.clipboard.writeText(id).then(() => {
+      alert("Patient ID copied to clipboard: " + id);
+    }).catch(err => {
+      console.warn("Failed to copy", err);
+    });
+  }
+
+  // Filter Documents Function
+  function filterDocuments() {
+    const searchVal = document.getElementById("doc-search-input").value.toLowerCase();
+    const categoryVal = document.getElementById("doc-category-filter").value;
+    const cards = document.querySelectorAll(".doc-card");
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const name = card.getAttribute("data-name");
+      const category = card.getAttribute("data-category");
+
+      // Match search
+      const matchesSearch = name.includes(searchVal);
+      // Match category
+      let matchesCategory = false;
+      if (categoryVal === "ALL") {
+        matchesCategory = true;
+      } else if (categoryVal === "Uncategorized") {
+        matchesCategory = !category || category === "" || category === "Uncategorized";
+      } else {
+        matchesCategory = category && category.toLowerCase() === categoryVal.toLowerCase();
+      }
+
+      if (matchesSearch && matchesCategory) {
+        card.style.display = "flex";
+        visibleCount++;
+      } else {
+        card.style.display = "none";
+      }
+    });
+
+    const emptyState = document.getElementById("doc-empty-state");
+    if (emptyState) {
+      emptyState.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+
+  // Sort Documents Function
+  function sortDocuments() {
+    const sortVal = document.getElementById("doc-sort-filter").value;
+    const container = document.getElementById("documents-grid-container");
+    const cards = Array.from(container.querySelectorAll(".doc-card"));
+
+    cards.sort((a, b) => {
+      if (sortVal === "date-desc") {
+        return new Date(b.getAttribute("data-date")) - new Date(a.getAttribute("data-date"));
+      } else if (sortVal === "date-asc") {
+        return new Date(a.getAttribute("data-date")) - new Date(b.getAttribute("data-date"));
+      } else if (sortVal === "name-asc") {
+        return a.getAttribute("data-name").localeCompare(b.getAttribute("data-name"));
+      }
+      return 0;
+    });
+
+    // Re-append in order
+    cards.forEach(card => container.appendChild(card));
+  }
+
+  // Preview Document Function
+  function openFilePreview(id, name) {
+    const overlay = document.getElementById("preview-modal");
+    const title = document.getElementById("preview-title");
+    const frameContainer = document.getElementById("preview-frame-container");
+    const loader = document.getElementById("preview-loading-skeleton");
+
+    title.textContent = name;
+    overlay.style.display = "flex";
+    loader.style.display = "flex";
+    frameContainer.innerHTML = "";
+    currentZoom = 1.0;
+
+    // Use doctor preview endpoint
+    const previewUrl = `/doctor/emergency-preview-file/${id}`;
+    activePreviewUrl = previewUrl;
+
+    // Detect format
+    const lowerName = name.toLowerCase();
+    const isImage = lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png") || lowerName.endsWith(".gif") || lowerName.endsWith(".svg");
+
+    setTimeout(() => {
+      loader.style.display = "none";
+      if (isImage) {
+        frameContainer.innerHTML = `<img src="${previewUrl}" id="preview-image-element" style="max-width:100%; transition: transform 0.2s;" />`;
+      } else {
+        frameContainer.innerHTML = `<iframe src="${previewUrl}" id="preview-iframe-element" style="width:100%; height:100%; border:none; background:white;"></iframe>`;
+      }
+    }, 500);
+  }
+
+  function closeFilePreview() {
+    document.getElementById("preview-modal").style.display = "none";
+    document.getElementById("preview-frame-container").innerHTML = "";
+    activePreviewUrl = "";
+  }
+
+  function zoomPreview(multiplier) {
+    currentZoom *= multiplier;
+    const img = document.getElementById("preview-image-element");
+    if (img) {
+      img.style.transform = `scale(${currentZoom})`;
+    } else {
+      const iframe = document.getElementById("preview-iframe-element");
+      if (iframe) {
+        // Unfortunately standard iframe scaling is restricted on cross origin, but works on local
+        iframe.style.transform = `scale(${currentZoom})`;
+        iframe.style.transformOrigin = "top left";
+      }
+    }
+  }
+
+  function printPreviewDocument() {
+    if (!activePreviewUrl) return;
+    const printWindow = window.open(activePreviewUrl, "_blank");
+    printWindow.focus();
+    printWindow.print();
+  }
+</script>
+
+<style>
+  /* Premium Apple Health UI styling & styling variables overrides */
+  .emergency-profile-container {
+    max-width: 1280px;
+    padding: 1.5rem;
+    box-sizing: border-box;
+  }
+
+  .emergency-profile-banner {
+    background: #ef4444;
+    color: white;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .banner-pulse {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: white;
+    animation: alert-banner-pulse 1.5s infinite ease-in-out;
+  }
+
+  .banner-title {
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+  }
+
+  .banner-expiry {
+    background: rgba(0,0,0,0.2);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  /* Grid details */
+  .emergency-dashboard-grid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+
+  @media (max-width: 992px) {
+    .emergency-dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Passport Card Layout */
+  .patient-passport-card {
+    border: 2px solid rgba(239, 68, 68, 0.35) !important;
+    text-align: center;
+    padding: 2rem 1.5rem !important;
+  }
+
+  .avatar-container {
+    position: relative;
+    display: inline-flex;
+    margin-bottom: 1.25rem;
+  }
+
+  .avatar-initials-large {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.25rem;
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.2);
+  }
+
+  .blood-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: #000;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 2px solid white;
+  }
+
+  .patient-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+
+  .patient-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .meta-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .meta-value {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .divider-line {
+    height: 1px;
+    background: var(--border);
+    margin: 1.5rem 0;
+  }
+
+  .emergency-contact-box {
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: left;
+    border: 1px solid rgba(239, 68, 68, 0.1);
+  }
+
+  .contact-box-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #ef4444;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  .contact-relation {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-phone {
+    font-weight: 700;
+    color: #ef4444;
+  }
+
+  /* Buttons */
+  .action-buttons-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-action-red {
+    background: #ef4444;
+    color: white;
+  }
+  .btn-action-red:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(239,68,68,0.2);
+  }
+
+  .btn-action-blue {
+    background: #3b82f6;
+    color: white;
+  }
+  .btn-action-blue:hover {
+    background: #2563eb;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+  }
+
+  .btn-action-secondary {
+    background: rgba(0,0,0,0.05);
+    color: var(--text);
+  }
+  [data-theme="dark"] .btn-action-secondary {
+    background: rgba(255,255,255,0.05);
+  }
+  .btn-action-secondary:hover {
+    background: rgba(0,0,0,0.1);
+  }
+
+  /* Vitals KPIs */
+  .vitals-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+
+  .vital-kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem !important;
+  }
+
+  .glass-kpi-red {
+    background: rgba(239, 68, 68, 0.05) !important;
+    border: 1px solid rgba(239, 68, 68, 0.15) !important;
+  }
+
+  .kpi-gauge-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gauge-percentage {
+    position: absolute;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .kpi-icon-label {
+    font-size: 2.25rem;
+  }
+
+  .kpi-value-container {
+    flex: 1;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .kpi-unit {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .kpi-title {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-top: 0.1rem;
+  }
+
+  /* Clinical Alerts boxes */
+  .critical-alerts-card {
+    border-top: 4px solid #ef4444 !important;
+  }
+
+  .alerts-card-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ef4444;
+    margin: 0 0 1rem;
+  }
+
+  .alerts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (max-width: 768px) {
+    .alerts-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .alert-box-item {
+    background: rgba(0,0,0,0.015);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border-left: 4px solid var(--border);
+  }
+  [data-theme="dark"] .alert-box-item {
+    background: rgba(255,255,255,0.015);
+  }
+
+  .alert-border-red { border-left-color: #ef4444; }
+  .alert-border-orange { border-left-color: #f59e0b; }
+  .alert-border-blue { border-left-color: #3b82f6; }
+  .alert-border-green { border-left-color: #10b981; }
+
+  .alert-box-header {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .alert-box-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .allergy-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+  }
+
+  .allergy-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  .severity-severe { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .severity-moderate { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .severity-mild { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+  .prescriptions-mini-list {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .mini-rx-item {
+    font-size: 0.8rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* AI Summary Box */
+  .ai-summary-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(59, 130, 246, 0.03) 100%) !important;
+    border: 1px solid rgba(59, 130, 246, 0.15) !important;
+  }
+
+  .ai-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .ai-logo-pill {
+    background: linear-gradient(90deg, #3b82f6 0%, #ef4444 100%);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.35rem 0.75rem;
+    border-radius: 99px;
+    letter-spacing: 0.05em;
+  }
+
+  .ai-summary-disclaimer {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .ai-summary-body {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  /* Tables */
+  .card-section-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0 0 1.25rem;
+    color: var(--text);
+  }
+
+  .vitals-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .vitals-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+
+  .vitals-history-table th, .vitals-history-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .vitals-history-table th {
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .text-truncate-cell {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Documents Layout */
+  .documents-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .doc-search-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .doc-search-box {
+    max-width: 220px;
+  }
+
+  .doc-filter-dropdown {
+    width: auto;
+    padding: 0.5rem 1.5rem 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .doc-card {
+    background: rgba(0,0,0,0.015);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+  }
+  [data-theme="dark"] .doc-card {
+    background: rgba(255,255,255,0.015);
+  }
+  .doc-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .doc-card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .doc-category-badge {
+    background: rgba(0,0,0,0.06);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    align-self: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  [data-theme="dark"] .doc-category-badge {
+    background: rgba(255,255,255,0.06);
+  }
+
+  .doc-file-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    flex: 1;
+  }
+
+  .doc-meta-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .doc-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+
+  .doc-action-btn {
+    background: none;
+    border: none;
+    padding: 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .doc-card-actions a:hover, .doc-card-actions button:hover {
+    background: rgba(0,0,0,0.03);
+    color: var(--text);
+  }
+  [data-theme="dark"] .doc-card-actions a:hover, [data-theme="dark"] .doc-card-actions button:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .doc-card-actions button:first-child {
+    border-right: 1px solid var(--border);
+  }
+
+  .empty-doc-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* History list items */
+  .mini-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .mini-history-item {
+    background: rgba(0,0,0,0.015);
+    border-radius: 10px;
+    padding: 0.75rem;
+    border-left: 2px solid var(--border);
+  }
+  [data-theme="dark"] .mini-history-item {
+    background: rgba(255,255,255,0.015);
+  }
+
+  .appt-status-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .status-scheduled { background: rgba(59,130,246,0.15); color: #3b82f6; }
+  .status-completed { background: rgba(16,185,129,0.15); color: #10b981; }
+  .status-waiting { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .status-in_progress { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .status-pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+  /* Document Preview Overlay Modal */
+  .preview-modal-container {
+    width: 90%;
+    max-width: 960px;
+    height: 85vh;
+    background: #1e293b;
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .preview-modal-header {
+    background: #0f172a;
+    padding: 0.85rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .preview-toolbar-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .preview-tool-btn, .preview-close-btn {
+    background: rgba(255,255,255,0.08);
+    color: white;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .preview-tool-btn:hover {
+    background: rgba(255,255,255,0.15);
+  }
+  .preview-close-btn {
+    background: #ef4444;
+  }
+  .preview-close-btn:hover {
+    background: #dc2626;
+  }
+
+  .preview-modal-body {
+    flex: 1;
+    background: #334155;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preview-content-frame {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+
+  /* Skeleton Loading State */
+  .skeleton-loader-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #334155;
+    z-index: 10;
+    gap: 1rem;
+  }
+
+  .skeleton-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #475569 25%, #64748b 50%, #475569 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse-loading 1.5s infinite linear;
+  }
+
+  .skeleton-line-long {
+    width: 180px;
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #475569 25%, #64748b 50%, #475569 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse-loading 1.5s infinite linear;
+  }
+
+  .skeleton-line-short {
+    width: 110px;
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #475569 25%, #64748b 50%, #475569 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse-loading 1.5s infinite linear;
+  }
+
+  @keyframes skeleton-pulse-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes alert-banner-pulse {
+    0%, 100% { transform: scaleX(1); opacity: 1; }
+    50% { transform: scaleX(2.5); opacity: 0.7; }
+  }
+
+  /* Print Stylesheet Overrides */
+  @media print {
+    body {
+      background: white !important;
+      color: black !important;
+    }
+    .dr-topbar, .dr-back-link, .action-buttons-list, #documents-viewer-section, .dr-profile-wrap, .preview-modal-overlay {
+      display: none !important;
+    }
+    .emergency-profile-container {
+      padding: 0 !important;
+      max-width: 100% !important;
+    }
+    .emergency-dashboard-grid {
+      grid-template-columns: 1fr !important;
+      display: block !important;
+    }
+    .patient-passport-card {
+      border: 2px solid #ef4444 !important;
+      page-break-after: avoid;
+      margin-bottom: 2rem !important;
+    }
+    .dashboard-main {
+      display: block !important;
+    }
+    .premium-card {
+      background: none !important;
+      border: 1px solid #ccc !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      page-break-inside: avoid;
+    }
+    .alerts-grid {
+      grid-template-columns: 1fr 1fr !important;
+      display: grid !important;
+    }
+  }
+</style>
+{% endblock %}

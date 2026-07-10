@@ -1,0 +1,182 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <div class="pd-wrap">
+    <a href="{{ url_for('core.dashboard') }}" class="pd-back-link">← Back to Dashboard</a>
+    
+    <h1 class="pd-page-title">Medicine Reminders</h1>
+    <p class="pd-page-lead">Track your daily medication intake, update compliance records, and manage schedules.</p>
+    
+    <!-- Daily Progress compliance bar -->
+    <div class="compliance-progress-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3 class="compliance-progress-title">Today's Medication Adherence</h3>
+        <strong style="color: var(--accent); font-size: 1.25rem;">{{ adherence_pct }}% Completed</strong>
+      </div>
+      <div class="compliance-bar-outer">
+        <div class="compliance-bar-inner" style="width: {{ adherence_pct }}%;"></div>
+      </div>
+      <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+        Taken: {{ taken }} of {{ total }} medications today. {% if missed > 0 %}Missed: {{ missed }}{% endif %}
+      </p>
+    </div>
+    
+    <div class="pd-main-grid">
+      <div class="pd-split-main">
+        <!-- Daily Medication Checklist -->
+        <section class="pd-panel">
+          <h2 class="dr-side-title" style="margin-bottom: 1rem;">Medication Checklist (Today)</h2>
+          
+          {% if reminders %}
+            <div class="med-checklist">
+              {% for rem in reminders %}
+                <div class="med-checklist-item {% if rem.is_done %}med-taken{% else %}med-upcoming{% endif %}" id="reminder-card-{{ rem.id }}">
+                  <button class="med-checkbox-btn" onclick="toggleReminder({{ rem.id }})" aria-label="Toggle taken status for {{ rem.title }}"></button>
+                  <div style="display: flex; align-items: center; gap: 0.75rem; flex-grow: 1;">
+                    {% if rem.med_image %}
+                      <img src="{{ rem.med_image }}" alt="Med Image" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
+                    {% endif %}
+                    <div class="med-info-box">
+                      <span class="med-title" style="font-weight: 700;">{{ rem.title }}</span>
+                      <div class="med-meta" style="font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <span>⏰ Time: {{ rem.time_fmt }}</span>
+                        {% if rem.dosage %}<span>• Dosage: {{ rem.dosage }}</span>{% endif %}
+                        {% if rem.instructions %}<span>• {{ rem.instructions }}</span>{% endif %}
+                        {% if rem.repeat_enabled %}<span style="color: #f59e0b; font-weight: 600;">⏰ Repeated Alerts</span>{% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  <span class="med-status-tag" id="reminder-badge-{{ rem.id }}">
+                    {% if rem.is_done %}Taken{% else %}Pending{% endif %}
+                  </span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="pd-empty-state" style="margin: 0;">
+              <div class="pd-empty-state-icon">💊</div>
+              <div class="pd-empty-state-title">No Reminders for Today</div>
+              <div class="pd-empty-state-desc">You haven't scheduled any medicine doses for today. Add reminders in the tool panel to get started.</div>
+            </div>
+          {% endif %}
+        </section>
+        
+        <!-- Add Medication Reminder form -->
+        <section class="pd-panel">
+          <h2 class="dr-side-title" style="margin-bottom: 1rem;">Add Medicine Reminder</h2>
+          <form method="post" action="{{ url_for('modules.add_reminder') }}" class="dr-p-form">
+            <input type="hidden" name="reminder_type" value="medication" />
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                  <label class="dr-hint">Medicine Name</label>
+                  <input class="dr-input" name="title" placeholder="e.g. Metformin" required />
+                </div>
+                <div>
+                  <label class="dr-hint">Dosage</label>
+                  <input class="dr-input" name="dosage" placeholder="e.g. 500mg, 1 Capsule, 5ml" required />
+                </div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                  <label class="dr-hint">Instructions</label>
+                  <select class="dr-input" name="instructions" style="background: white; color: var(--text);">
+                    <option value="After Food">After Food</option>
+                    <option value="Before Food">Before Food</option>
+                    <option value="With Food">With Food</option>
+                    <option value="Before Bed">Before Bed</option>
+                    <option value="On Empty Stomach">On Empty Stomach</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="dr-hint">Scheduled Time</label>
+                  <input class="dr-input" type="datetime-local" name="remind_at" required />
+                </div>
+              </div>
+
+              <div>
+                <label class="dr-hint">Medicine Image URL (optional)</label>
+                <input class="dr-input" name="med_image" placeholder="https://example.com/image.png" style="width: 100%;" />
+              </div>
+              
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <input type="checkbox" name="repeat_enabled" id="repeat_enabled" value="1" style="width: 16px; height: 16px;" />
+                <label for="repeat_enabled" style="font-size: 0.85rem; font-weight: 600; color: var(--text);">Repeated alerts (nudge every 15m until taken/skipped)</label>
+              </div>
+            </div>
+            <button class="pd-btn-primary" type="submit">Add Medicine Reminder</button>
+          </form>
+        </section>
+      </div>
+      
+      <div class="pd-split-side">
+        <!-- Active Prescriptions -->
+        <section class="pd-panel">
+          <h2 class="dr-side-title" style="margin-bottom: 1rem;">Your Active Prescriptions</h2>
+          {% if prescriptions %}
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              {% for rx in prescriptions %}
+                <div class="pd-rx" style="margin: 0; padding: 0.85rem;">
+                  <div class="pd-rx-top">
+                    <span class="pd-rx-name" style="font-size: 0.95rem;">{{ rx.medicine_name }} {{ rx.dosage }}</span>
+                  </div>
+                  <div class="pd-rx-sub" style="font-size: 0.8rem; margin-top: 0.25rem;">Freq: {{ rx.frequency }}</div>
+                  <div class="pd-rx-sub" style="font-size: 0.75rem; color: var(--text-muted);">Refill/End: {{ rx.end_date or 'See doctor' }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="pd-empty-state" style="margin: 0; padding: 1.5rem;">
+              <div class="pd-empty-state-icon">📄</div>
+              <div class="pd-empty-state-title" style="font-size: 1rem;">No Active Prescriptions</div>
+              <div class="pd-empty-state-desc" style="font-size: 0.8rem; margin-bottom: 0;">Prescriptions uploaded by your doctor will show up here.</div>
+            </div>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Autofill current time into date input
+    document.addEventListener("DOMContentLoaded", () => {
+      const inputs = document.querySelectorAll('input[type="datetime-local"]');
+      inputs.forEach(input => {
+        if (!input.value) {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          input.value = now.toISOString().slice(0, 16);
+        }
+      });
+    });
+
+    async function toggleReminder(reminderId) {
+      try {
+        const response = await fetch(`/api/patient/medicine-reminders/${reminderId}/toggle`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const card = document.getElementById(`reminder-card-${reminderId}`);
+          const badge = document.getElementById(`reminder-badge-${reminderId}`);
+          
+          if (data.is_done) {
+            card.classList.remove('med-upcoming');
+            card.classList.add('med-taken');
+            badge.textContent = 'Taken';
+          } else {
+            card.classList.remove('med-taken');
+            card.classList.add('med-upcoming');
+            badge.textContent = 'Pending';
+          }
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error("Failed to toggle reminder status:", err);
+      }
+    }
+  </script>
+{% endblock %}

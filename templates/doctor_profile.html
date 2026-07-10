@@ -1,33 +1,255 @@
 {% extends "base_doctor.html" %}
 {% block content %}
-  <div class="dr-shell dr-shell--narrow">
-    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
-    <h1 class="dr-page-title">Your profile</h1>
-    <p class="dr-page-lead">
-      This is how your name and details appear in the doctor portal. Clinical data you enter elsewhere stays separate.
-    </p>
-
-    <form method="post" class="dr-panel dr-settings-form">
-      <label class="dr-label-full" for="full_name">Display name</label>
-      <input class="dr-input" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ full_name }}" placeholder="e.g. Dr. Jane Smith" />
-
-      <label class="dr-label-full" for="doctor_specialty" style="margin-top: 1rem">Specialty</label>
-      <input class="dr-input" id="doctor_specialty" name="doctor_specialty" maxlength="120" value="{{ doctor_specialty }}" placeholder="e.g. Cardiology" />
-
-      <label class="dr-label-full" for="doctor_phone" style="margin-top: 1rem">Work phone (optional)</label>
-      <input class="dr-input" id="doctor_phone" name="doctor_phone" type="tel" maxlength="40" value="{{ doctor_phone }}" placeholder="Clinic or pager number" autocomplete="tel" />
-
-      <label class="dr-label-full" for="doctor_clinic" style="margin-top: 1rem">Practice / clinic (optional)</label>
-      <input class="dr-input" id="doctor_clinic" name="doctor_clinic" maxlength="200" value="{{ doctor_clinic }}" placeholder="e.g. City Heart Center" />
-
-      <label class="dr-label-full" for="doctor_bio" style="margin-top: 1rem">Short bio (optional)</label>
-      <textarea class="dr-input" id="doctor_bio" name="doctor_bio" rows="3" maxlength="500" placeholder="Languages, focus areas, or a line for colleagues…">{{ doctor_bio }}</textarea>
-      <p class="dr-hint">Stored securely. Max 500 characters.</p>
-
-      <div class="dr-form-actions" style="margin-top: 1rem">
-        <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save profile</button>
-        <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-link-muted">Cancel</a>
-      </div>
-    </form>
+<div class="dr-shell">
+  <div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Doctor Profile Registry</h1>
+    <p class="dr-hint" style="margin: 0.2rem 0 0;">Preview your public healthcare registry card and customize clinical settings.</p>
   </div>
+
+  <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; @media (max-width: 768px) { grid-template-columns: 1fr; }">
+    
+    <!-- LEFT COLUMN: PUBLIC DOCTOR CARD (READ-ONLY PREVIEW) -->
+    <aside class="dr-panel" style="padding: 1.5rem; text-align: center; border-top: 4px solid var(--accent); background: var(--surface);">
+      <div style="position: relative; display: inline-block; margin-bottom: 1rem;">
+        {% if profile.profile_photo %}
+          <img src="{{ profile.profile_photo }}" alt="Doctor Profile" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />
+        {% else %}
+          <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #4f46e5); color: white; display: grid; place-items: center; font-size: 2.2rem; font-weight: bold; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            {{ profile.full_name[:2] }}
+          </div>
+        {% endif %}
+        <span style="position: absolute; bottom: 0; right: 0; background: #10b981; border: 2px solid var(--surface); width: 14px; height: 14px; border-radius: 50%;" title="Active Practice Hours"></span>
+      </div>
+
+      <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; font-weight: 800; color: var(--text);">{{ profile.full_name }}</h2>
+      <span style="font-size: 0.8rem; background: rgba(59, 130, 246, 0.12); color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: bold; text-transform: uppercase;">
+        {{ profile.specialty }}
+      </span>
+
+      <div style="margin-top: 1.25rem; text-align: left; font-size: 0.85rem; color: var(--text); border-top: 1px solid var(--border); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; line-height: 1.5;">
+        <div>🏫 <strong>Qualifications:</strong> {{ profile.highest_qualification or "MD, MBBS" }}</div>
+        <div>💼 <strong>Experience:</strong> {{ profile.years_experience or "0" }} Years</div>
+        <div>🏥 <strong>Hospital/Clinic:</strong> {{ profile.hospital_clinic or "Not Configured" }}</div>
+        <div>🗣️ <strong>Languages:</strong> {{ profile.languages_spoken or "English" }}</div>
+        <div>💵 <strong>Consult Fee:</strong> ${{ "{:,.2f}".format(profile.consultation_fee or 0) }}</div>
+        <div>⏰ <strong>Availability:</strong> {{ profile.consultation_hours or "Not Scheduled" }}</div>
+      </div>
+
+      <div style="margin-top: 1rem; text-align: left; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; line-height: 1.4;">
+        <span style="font-weight: 700; color: var(--text); display: block; margin-bottom: 0.25rem; text-transform: uppercase; font-size: 0.72rem;">Professional Biography</span>
+        "{{ profile.bio or 'No bio added yet.' }}"
+      </div>
+    </aside>
+
+    <!-- RIGHT COLUMN: TABBED CLINICAL SETTINGS FORM -->
+    <main>
+      <form method="post" class="dr-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; background: var(--surface);">
+        
+        <!-- Tab navigation -->
+        <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; overflow-x: auto;">
+          <button type="button" onclick="switchProfileTab('personal')" class="dr-btn-outline tab-btn active-tab" id="tab_personal" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Personal Info</button>
+          <button type="button" onclick="switchProfileTab('professional')" class="dr-btn-outline tab-btn" id="tab_professional" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Professional</button>
+          <button type="button" onclick="switchProfileTab('availability')" class="dr-btn-outline tab-btn" id="tab_availability" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Availability</button>
+          <button type="button" onclick="switchProfileTab('achievements')" class="dr-btn-outline tab-btn" id="tab_achievements" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Bio &amp; Awards</button>
+        </div>
+
+        <!-- TAB 1: PERSONAL INFORMATION -->
+        <fieldset id="sect_personal" style="border: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label class="dr-label-full" for="full_name">Full Name *</label>
+            <input class="dr-input" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ profile.full_name }}" placeholder="Dr. Jane Smith" />
+          </div>
+          
+          <div>
+            <label class="dr-label-full" for="email">Email Address *</label>
+            <input class="dr-input" id="email" name="email" type="email" required value="{{ profile.email }}" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="gender">Gender</label>
+              <select class="dr-input" id="gender" name="gender">
+                <option value="Female" {% if profile.gender == "Female" %}selected{% endif %}>Female</option>
+                <option value="Male" {% if profile.gender == "Male" %}selected{% endif %}>Male</option>
+                <option value="Other" {% if profile.gender == "Other" %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="dob">Date of Birth</label>
+              <input class="dr-input" id="dob" name="dob" type="date" value="{{ profile.dob }}" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="phone">Phone Number *</label>
+              <input class="dr-input" id="phone" name="phone" type="tel" required value="{{ profile.phone }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="profile_photo">Profile Photo URL</label>
+              <input class="dr-input" id="profile_photo" name="profile_photo" type="url" value="{{ profile.profile_photo }}" placeholder="https://example.com/photo.jpg" />
+            </div>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="address">Practice Address</label>
+            <input class="dr-input" id="address" name="address" value="{{ profile.address }}" />
+          </div>
+        </fieldset>
+
+        <!-- TAB 2: PROFESSIONAL INFORMATION -->
+        <fieldset id="sect_professional" style="border: none; padding: 0; margin: 0; display: none; flex-direction: column; gap: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="specialty">Medical Specialty *</label>
+              <input class="dr-input" id="specialty" name="specialty" required value="{{ profile.specialty }}" placeholder="Cardiologist, Neurologist, etc." />
+            </div>
+            <div>
+              <label class="dr-label-full" for="highest_qualification">Highest Qualification *</label>
+              <input class="dr-input" id="highest_qualification" name="highest_qualification" required value="{{ profile.highest_qualification }}" placeholder="e.g. MD, MBBS" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="hospital_clinic">Hospital / Clinic Name</label>
+              <input class="dr-input" id="hospital_clinic" name="hospital_clinic" value="{{ profile.hospital_clinic }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="years_experience">Years of Experience *</label>
+              <input class="dr-input" id="years_experience" name="years_experience" type="number" min="0" required value="{{ profile.years_experience }}" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="consultation_fee">Consultation Fee ($) *</label>
+              <input class="dr-input" id="consultation_fee" name="consultation_fee" type="number" min="0" step="0.01" required value="{{ profile.consultation_fee }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="languages_spoken">Languages Spoken</label>
+              <input class="dr-input" id="languages_spoken" name="languages_spoken" value="{{ profile.languages_spoken }}" placeholder="e.g. English, Spanish" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="registration_number">Registration Number *</label>
+              <input class="dr-input" id="registration_number" name="registration_number" required value="{{ profile.registration_number }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="medical_council">Medical Council *</label>
+              <input class="dr-input" id="medical_council" name="medical_council" required value="{{ profile.medical_council }}" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- TAB 3: AVAILABILITY SETTINGS -->
+        <fieldset id="sect_availability" style="border: none; padding: 0; margin: 0; display: none; flex-direction: column; gap: 1rem;">
+          <label class="dr-label-full" style="margin-bottom: 0.25rem;">Working Days</label>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+            {% set days = profile.working_days.split(',') %}
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Monday" {% if "Monday" in days %}checked{% endif %} /> Mon
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Tuesday" {% if "Tuesday" in days %}checked{% endif %} /> Tue
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Wednesday" {% if "Wednesday" in days %}checked{% endif %} /> Wed
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Thursday" {% if "Thursday" in days %}checked{% endif %} /> Thu
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Friday" {% if "Friday" in days %}checked{% endif %} /> Fri
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Saturday" {% if "Saturday" in days %}checked{% endif %} /> Sat
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer; font-size: 0.85rem;">
+              <input type="checkbox" name="working_days" value="Sunday" {% if "Sunday" in days %}checked{% endif %} /> Sun
+            </label>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+            <div>
+              <label class="dr-label-full" for="consultation_hours">Practice Hours</label>
+              <input class="dr-input" id="consultation_hours" name="consultation_hours" value="{{ profile.consultation_hours }}" placeholder="e.g. 09:00 AM - 05:00 PM" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="timezone">Practice Timezone</label>
+              <select class="dr-input" id="timezone" name="timezone">
+                <option value="UTC" {% if profile.timezone == "UTC" %}selected{% endif %}>UTC (GMT)</option>
+                <option value="EST" {% if profile.timezone == "EST" %}selected{% endif %}>EST (Eastern Time)</option>
+                <option value="IST" {% if profile.timezone == "IST" %}selected{% endif %}>IST (Indian Time)</option>
+                <option value="PST" {% if profile.timezone == "PST" %}selected{% endif %}>PST (Pacific Time)</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- TAB 4: BIO & ACHIEVEMENTS -->
+        <fieldset id="sect_achievements" style="border: none; padding: 0; margin: 0; display: none; flex-direction: column; gap: 1rem;">
+          <div>
+            <label class="dr-label-full" for="bio">Professional Bio</label>
+            <textarea class="dr-input" id="bio" name="bio" rows="4" maxlength="500" placeholder="Introduce yourself to your patients... ">{{ profile.bio }}</textarea>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="certifications">Medical Certifications</label>
+            <input class="dr-input" id="certifications" name="certifications" value="{{ profile.certifications }}" placeholder="e.g. Board Certified, FACC" />
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="awards">Awards &amp; Recognitions</label>
+            <input class="dr-input" id="awards" name="awards" value="{{ profile.awards }}" placeholder="e.g. Distinguished Service Award" />
+          </div>
+        </fieldset>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.6rem 1.2rem;">Cancel</a>
+          <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save Changes</button>
+        </div>
+
+      </form>
+    </main>
+
+  </div>
+</div>
+
+<style>
+  .tab-btn {
+    border-color: var(--border) !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-weight: 600;
+  }
+  .tab-btn.active-tab {
+    border-color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+    color: var(--accent) !important;
+  }
+</style>
+
+<script>
+  function switchProfileTab(tabName) {
+    // Hide all sections
+    document.getElementById('sect_personal').style.display = 'none';
+    document.getElementById('sect_professional').style.display = 'none';
+    document.getElementById('sect_availability').style.display = 'none';
+    document.getElementById('sect_achievements').style.display = 'none';
+    
+    // Deactivate all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active-tab');
+    });
+
+    // Show selected section
+    document.getElementById('sect_' + tabName).style.display = 'flex';
+    document.getElementById('tab_' + tabName).classList.add('active-tab');
+  }
+</script>
 {% endblock %}

@@ -12,86 +12,7 @@ def now_ts() -> int:
     return int(time.time())
 
 
-@modules_bp.get("/roadmap")
-@login_required
-def roadmap():
-    try:
-        from flask_login import current_user
-        
-        from app_pkg.routes.core import _portal_role, _portal_theme
-        
-        db = get_db()
-        user_id = request.args.get("profile_id") or request.args.get("user_id")
-        user_id = int(user_id) if user_id else None
-        # For now scoped to logged-in user only
-        user_id = int(current_user.id) if user_id is None else int(current_user.id)
-        portal_role = _portal_role(current_user.id)
-        theme = _portal_theme(current_user.id, current_user.username)
-        base_template = "base_doctor.html" if portal_role == "doctor" else "base_patient.html"
-        
-        print(f"Debug: user_id={user_id}, portal_role={portal_role}")
-        
-        context = {
-            "timeline": [dict(row) for row in db.execute(
-                "SELECT * FROM medical_timeline_events WHERE user_id = ? ORDER BY event_date DESC, id DESC",
-                (user_id,),
-            ).fetchall()],
-            "prescriptions": [dict(row) for row in db.execute(
-                "SELECT * FROM prescriptions WHERE user_id = ? ORDER BY id DESC",
-                (user_id,),
-            ).fetchall()],
-            "doctors": [dict(row) for row in db.execute(
-                "SELECT * FROM doctors WHERE user_id = ? ORDER BY id DESC",
-                (user_id,),
-            ).fetchall()],
-            "appointments": [dict(row) for row in db.execute(
-                """
-                SELECT a.*, d.name as doctor_name, d.specialization
-                FROM appointments a
-                LEFT JOIN doctors d ON a.doctor_id = d.id
-                WHERE a.user_id = ? 
-                ORDER BY a.appointment_at DESC
-                """,
-                (user_id,),
-            ).fetchall()],
-            "vaccinations": [dict(row) for row in db.execute(
-                "SELECT * FROM vaccinations WHERE user_id = ? ORDER BY due_date ASC, id DESC",
-                (user_id,),
-            ).fetchall()],
-            "allergies": [dict(row) for row in db.execute(
-                "SELECT * FROM allergies_registry WHERE user_id = ? ORDER BY id DESC",
-                (user_id,),
-            ).fetchall()],
-            "reminders": [dict(row) for row in db.execute(
-                "SELECT * FROM reminders WHERE user_id = ? ORDER BY remind_at ASC, id DESC",
-                (user_id,),
-            ).fetchall()],
-            "vitals": [dict(row) for row in db.execute(
-                "SELECT * FROM vitals_logs WHERE user_id = ? ORDER BY logged_at ASC, id ASC",
-                (user_id,),
-            ).fetchall()],
-            "profiles": [dict(row) for row in db.execute(
-                "SELECT * FROM family_profiles WHERE owner_user_id = ? ORDER BY id DESC",
-                (user_id,),
-            ).fetchall()],
-        }
-        
-        print(f"Debug: context keys={list(context.keys())}")
-        
-        return render_template(
-            "modules_roadmap.html",
-            base_template=base_template,
-            theme=theme,
-            portal_role=portal_role,
-            **context,
-        )
-        
-    except Exception as e:
-        print(f"Error in roadmap route: {e}")
-        import traceback
-        traceback.print_exc()
-        return f"Error loading health modules: {str(e)}", 500
-
+# All forms now redirect to their dedicated subpages instead of the deprecated roadmap module.
 
 @modules_bp.post("/family")
 @login_required
@@ -115,7 +36,7 @@ def add_family_profile():
     )
     db.commit()
     flash("Family profile added.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.dashboard"))
 
 
 @modules_bp.post("/timeline")
@@ -139,7 +60,7 @@ def add_timeline():
     )
     db.commit()
     flash("Timeline event added.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.health_timeline"))
 
 
 @modules_bp.post("/prescriptions")
@@ -166,7 +87,7 @@ def add_prescription():
     )
     db.commit()
     flash("Prescription saved.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.dashboard"))
 
 
 @modules_bp.post("/doctors")
@@ -187,7 +108,7 @@ def add_doctor():
     )
     db.commit()
     flash("Doctor added.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.favorite_doctors"))
 
 
 @modules_bp.post("/appointments")
@@ -215,7 +136,7 @@ def add_appointment():
     )
     db.commit()
     flash("Appointment saved.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.health_timeline"))
 
 
 @modules_bp.post("/vaccinations")
@@ -240,7 +161,7 @@ def add_vaccination():
     )
     db.commit()
     flash("Vaccination record added.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.health_timeline"))
 
 
 @modules_bp.post("/allergies")
@@ -264,7 +185,7 @@ def add_allergy():
     )
     db.commit()
     flash("Allergy added.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.dashboard"))
 
 
 @modules_bp.post("/reminders")
@@ -273,22 +194,35 @@ def add_reminder():
     from flask_login import current_user
 
     db = get_db()
+    title = (request.form.get("title") or "").strip()
+    remind_at = (request.form.get("remind_at") or "").strip()
+    reminder_type = (request.form.get("reminder_type") or "general").strip()
+    
+    dosage = (request.form.get("dosage") or "").strip()
+    instructions = (request.form.get("instructions") or "").strip()
+    med_image = (request.form.get("med_image") or "").strip()
+    repeat_enabled = 1 if request.form.get("repeat_enabled") else 0
+
     db.execute(
         """
-        INSERT INTO reminders (user_id, title, remind_at, reminder_type, is_done, created_at)
-        VALUES (?, ?, ?, ?, 0, ?)
+        INSERT INTO reminders (user_id, title, remind_at, reminder_type, is_done, dosage, instructions, med_image, repeat_enabled, created_at)
+        VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
         """,
         (
             current_user.id,
-            (request.form.get("title") or "").strip(),
-            (request.form.get("remind_at") or "").strip(),
-            (request.form.get("reminder_type") or "general").strip(),
+            title,
+            remind_at,
+            reminder_type,
+            dosage,
+            instructions,
+            med_image,
+            repeat_enabled,
             now_ts(),
         ),
     )
     db.commit()
     flash("Reminder added.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.medicine_reminders"))
 
 
 @modules_bp.post("/reminders/<int:reminder_id>/done")
@@ -300,7 +234,7 @@ def mark_reminder_done(reminder_id: int):
     db.execute("UPDATE reminders SET is_done = 1 WHERE id = ? AND user_id = ?", (reminder_id, current_user.id))
     db.commit()
     flash("Reminder marked done.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.medicine_reminders"))
 
 
 @modules_bp.post("/vitals")
@@ -328,7 +262,8 @@ def add_vitals():
     )
     db.commit()
     flash("Vitals logged.")
-    return redirect(url_for("modules.roadmap"))
+    return redirect(url_for("core.health_vitals"))
+
 
 
 def now_ts() -> int:

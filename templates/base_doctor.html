@@ -80,25 +80,43 @@
                 </span>
                 <span>All appointments</span>
               </a>
-              <a href="{{ url_for('core.doctor_analytics') }}" class="dr-profile-menu-item" role="menuitem">
+              <a href="{{ url_for('core.doctor_performance_dashboard') }}" class="dr-profile-menu-item" role="menuitem">
                 <span class="dr-profile-menu-ico" aria-hidden="true">📊</span>
-                <span>Health analytics</span>
+                <span>Practice Performance</span>
               </a>
               <a href="{{ url_for('core.doctor_ai_assistant') }}" class="dr-profile-menu-item" role="menuitem">
                 <span class="dr-profile-menu-ico" aria-hidden="true">🤖</span>
                 <span>AI assistant</span>
               </a>
-              <a href="{{ url_for('core.doctor_emergency_scan') }}" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h3l2-3h8l2 3h3a1 1 0 011 1v11a1 1 0 01-1 1H3a1 1 0 01-1-1V8a1 1 0 011-1z"/><circle cx="12" cy="13" r="3"/></svg>
+              <a href="{{ url_for('emergency.doctor_emergency_scanner') }}" class="dr-profile-menu-item" role="menuitem" style="color: #ef4444; font-weight: 700;">
+                <span class="dr-profile-menu-ico" aria-hidden="true" style="color: #ef4444;">
+                  🚨
                 </span>
-                <span>Emergency QR scan</span>
+                <span>Emergency QR Scanner</span>
               </a>
-              <a href="{{ url_for('modules.roadmap') }}" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12M8 10l4-4 4 4"/><circle cx="12" cy="12" r="10"/></svg>
-                </span>
-                <span>Product roadmap</span>
+              <a href="{{ url_for('core.doctor_appointments_calendar') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">📅</span>
+                <span>Appointments calendar</span>
+              </a>
+              <a href="{{ url_for('core.doctor_leaves') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">✈️</span>
+                <span>Leave &amp; vacation mode</span>
+              </a>
+              <a href="{{ url_for('core.doctor_prescription_templates') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">💊</span>
+                <span>Prescription templates</span>
+              </a>
+              <a href="{{ url_for('core.doctor_patient_notes_route') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">📝</span>
+                <span>Patient progress notes</span>
+              </a>
+              <a href="{{ url_for('core.doctor_reminders_route') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">🔔</span>
+                <span>Follow-up reminders</span>
+              </a>
+              <a href="{{ url_for('core.doctor_payments') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">💳</span>
+                <span>Payments &amp; Earnings</span>
               </a>
               <div class="dr-profile-menu-divider" role="presentation"></div>
               <form action="{{ url_for('auth.logout') }}" method="post" class="dr-profile-menu-logout">

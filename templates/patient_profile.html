@@ -1,0 +1,302 @@
+{% extends "base_patient.html" %}
+{% block content %}
+<div class="dr-shell">
+  <div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('core.dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Medical Health Passport</h1>
+    <p class="dr-hint" style="margin: 0.2rem 0 0;">Configure your medical registry, emergency contacts, and wellness profile.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; @media (max-width: 768px) { grid-template-columns: 1fr; }">
+    
+    <!-- LEFT COLUMN: PATIENT PASSPORT CARD (READ-ONLY PREVIEW) -->
+    <aside class="dr-panel" style="padding: 1.5rem; text-align: center; border-top: 4px solid var(--accent); background: var(--surface);">
+      <div style="position: relative; display: inline-block; margin-bottom: 1rem;">
+        {% if profile.profile_photo %}
+          <img src="{{ profile.profile_photo }}" alt="Patient Photo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 0 auto; display: block;" />
+        {% else %}
+          <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #10b981); color: white; display: grid; place-items: center; font-size: 2.2rem; font-weight: bold; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            {{ profile.full_name[:2] | upper }}
+          </div>
+        {% endif %}
+        <span style="position: absolute; bottom: 0; right: 0; background: #10b981; border: 2px solid var(--surface); width: 14px; height: 14px; border-radius: 50%;" title="EHR Synced"></span>
+      </div>
+
+      <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; font-weight: 800; color: var(--text);">{{ profile.full_name }}</h2>
+      <span style="font-size: 0.8rem; background: rgba(16, 185, 129, 0.12); color: #10b981; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: bold; text-transform: uppercase;">
+        Blood Group: {{ profile.blood_group or "N/A" }}
+      </span>
+
+      <div style="margin-top: 1.25rem; text-align: left; font-size: 0.85rem; color: var(--text); border-top: 1px solid var(--border); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; line-height: 1.5;">
+        <div>🗓️ <strong>Age / Gender:</strong> {{ profile.age or "0" }} yrs &bull; {{ profile.gender }}</div>
+        <div>📏 <strong>Height / Weight:</strong> {{ profile.height or "0" }}cm &bull; {{ profile.weight or "0" }}kg</div>
+        <div>🚨 <strong>Emergency Contact:</strong><br/>
+          <span style="color: var(--text-muted); font-size: 0.8rem;">
+            {{ profile.emergency_contact_name or "Not set" }} ({{ profile.emergency_contact_number or "N/A" }})
+          </span>
+        </div>
+        <div>🗣️ <strong>Preferred Language:</strong> {{ profile.preferred_language or "English" }}</div>
+      </div>
+
+      <div style="margin-top: 1rem; text-align: left; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; line-height: 1.4;">
+        <span style="font-weight: 700; color: #ef4444; display: block; margin-bottom: 0.25rem; text-transform: uppercase; font-size: 0.72rem;">⚠️ Active Allergies</span>
+        <div style="color: #b91c1c; font-weight: 600;">"{{ profile.allergies or 'None reported' }}"</div>
+      </div>
+      
+      <div style="margin-top: 1rem; text-align: left; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; line-height: 1.4;">
+        <span style="font-weight: 700; color: var(--text); display: block; margin-bottom: 0.25rem; text-transform: uppercase; font-size: 0.72rem;">🏥 Chronic Conditions</span>
+        <div>"{{ profile.existing_diseases or 'None reported' }}"</div>
+      </div>
+
+      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+        <a href="{{ url_for('core.emergency_info') }}" class="dr-btn-gradient dr-btn-gradient--inline" style="text-decoration: none; padding: 0.5rem 1rem; font-size: 0.8rem; width: 100%; display: block; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border: none;">
+          🚨 Emergency QR Code
+        </a>
+      </div>
+    </aside>
+
+    <!-- RIGHT COLUMN: TABBED CLINICAL SETTINGS FORM -->
+    <main>
+      <form method="post" class="dr-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; background: var(--surface);">
+        
+        <!-- Tab navigation -->
+        <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; overflow-x: auto;">
+          <button type="button" onclick="switchProfileTab('personal')" class="dr-btn-outline tab-btn active-tab" id="tab_personal" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Personal Info</button>
+          <button type="button" onclick="switchProfileTab('emergency')" class="dr-btn-outline tab-btn" id="tab_emergency" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Emergency Contact</button>
+          <button type="button" onclick="switchProfileTab('medical')" class="dr-btn-outline tab-btn" id="tab_medical" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Medical History</button>
+          <button type="button" onclick="switchProfileTab('lifestyle')" class="dr-btn-outline tab-btn" id="tab_lifestyle" style="width: auto; padding: 0.4rem 1rem; border-radius: 8px;">Lifestyle &amp; Diet</button>
+        </div>
+
+        <!-- TAB 1: PERSONAL INFORMATION -->
+        <fieldset id="sect_personal" style="border: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label class="dr-label-full" for="full_name">Full Name *</label>
+            <input class="dr-input" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ profile.full_name }}" placeholder="Jane Doe" />
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="profile_photo">Profile Photo URL</label>
+            <input class="dr-input" id="profile_photo" name="profile_photo" type="url" value="{{ profile.profile_photo }}" placeholder="https://example.com/photo.jpg" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="age">Age *</label>
+              <input class="dr-input" id="age" name="age" type="number" required min="0" value="{{ profile.age }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="gender">Gender</label>
+              <select class="dr-input" id="gender" name="gender">
+                <option value="Female" {% if profile.gender == "Female" %}selected{% endif %}>Female</option>
+                <option value="Male" {% if profile.gender == "Male" %}selected{% endif %}>Male</option>
+                <option value="Other" {% if profile.gender == "Other" %}selected{% endif %}>Other</option>
+                <option value="Prefer Not to Say" {% if profile.gender == "Prefer Not to Say" %}selected{% endif %}>Prefer Not to Say</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="dob">Date of Birth *</label>
+              <input class="dr-input" id="dob" name="dob" type="date" required value="{{ profile.dob }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="blood_group">Blood Group</label>
+              <select class="dr-input" id="blood_group" name="blood_group">
+                <option value="" {% if not profile.blood_group %}selected{% endif %}>Select...</option>
+                <option value="A+" {% if profile.blood_group == "A+" %}selected{% endif %}>A+</option>
+                <option value="A-" {% if profile.blood_group == "A-" %}selected{% endif %}>A-</option>
+                <option value="B+" {% if profile.blood_group == "B+" %}selected{% endif %}>B+</option>
+                <option value="B-" {% if profile.blood_group == "B-" %}selected{% endif %}>B-</option>
+                <option value="O+" {% if profile.blood_group == "O+" %}selected{% endif %}>O+</option>
+                <option value="O-" {% if profile.blood_group == "O-" %}selected{% endif %}>O-</option>
+                <option value="AB+" {% if profile.blood_group == "AB+" %}selected{% endif %}>AB+</option>
+                <option value="AB-" {% if profile.blood_group == "AB-" %}selected{% endif %}>AB-</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="height">Height (cm)</label>
+              <input class="dr-input" id="height" name="height" type="number" step="0.1" value="{{ profile.height }}" placeholder="170" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="weight">Weight (kg)</label>
+              <input class="dr-input" id="weight" name="weight" type="number" step="0.1" value="{{ profile.weight }}" placeholder="70" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="preferred_language">Preferred Language</label>
+              <input class="dr-input" id="preferred_language" name="preferred_language" value="{{ profile.preferred_language }}" placeholder="e.g. English, French" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="occupation">Occupation</label>
+              <input class="dr-input" id="occupation" name="occupation" value="{{ profile.occupation }}" placeholder="e.g. Software Engineer" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- TAB 2: CONTACT & EMERGENCY INFO -->
+        <fieldset id="sect_emergency" style="border: none; padding: 0; margin: 0; display: none; flex-direction: column; gap: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="phone">Phone Number *</label>
+              <input class="dr-input" id="phone" name="phone" type="tel" required value="{{ profile.phone }}" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="email">Email Address *</label>
+              <input class="dr-input" id="email" name="email" type="email" required value="{{ profile.email }}" />
+            </div>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="address">Residential Address</label>
+            <input class="dr-input" id="address" name="address" value="{{ profile.address }}" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 0.5rem;">
+            <div>
+              <label class="dr-label-full" for="emergency_contact_name">Emergency Contact Name *</label>
+              <input class="dr-input" id="emergency_contact_name" name="emergency_contact_name" required value="{{ profile.emergency_contact_name }}" placeholder="Primary contact full name" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="emergency_contact_number">Emergency Contact Phone *</label>
+              <input class="dr-input" id="emergency_contact_number" name="emergency_contact_number" required value="{{ profile.emergency_contact_number }}" placeholder="Contact phone number" />
+            </div>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="preferred_consultation_mode">Preferred consultation mode</label>
+            <select class="dr-input" id="preferred_consultation_mode" name="preferred_consultation_mode">
+              <option value="In-Person" {% if profile.preferred_consultation_mode == "In-Person" %}selected{% endif %}>In-Person</option>
+              <option value="Video Call" {% if profile.preferred_consultation_mode == "Video Call" %}selected{% endif %}>Video Call</option>
+              <option value="Audio Call" {% if profile.preferred_consultation_mode == "Audio Call" %}selected{% endif %}>Audio Call</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <!-- TAB 3: MEDICAL HISTORY -->
+        <fieldset id="sect_medical" style="border: none; padding: 0; margin: 0; display: none; flex-direction: column; gap: 1rem;">
+          <div>
+            <label class="dr-label-full" for="existing_diseases">Chronic Conditions / Diagnoses</label>
+            <textarea class="dr-input" id="existing_diseases" name="existing_diseases" rows="3" placeholder="e.g. Hypertension, Type-2 Diabetes">{{ profile.existing_diseases }}</textarea>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="current_medications">Active Medications</label>
+            <textarea class="dr-input" id="current_medications" name="current_medications" rows="3" placeholder="e.g. Metformin 500mg daily">{{ profile.current_medications }}</textarea>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="allergies">Known Allergies</label>
+            <textarea class="dr-input" id="allergies" name="allergies" rows="2" placeholder="e.g. Penicillin, Peanuts">{{ profile.allergies }}</textarea>
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="previous_surgeries">Previous Surgeries</label>
+            <input class="dr-input" id="previous_surgeries" name="previous_surgeries" value="{{ profile.previous_surgeries }}" placeholder="e.g. Appendectomy (2018)" />
+          </div>
+
+          <div>
+            <label class="dr-label-full" for="family_medical_history">Family Medical History</label>
+            <input class="dr-input" id="family_medical_history" name="family_medical_history" value="{{ profile.family_medical_history }}" placeholder="e.g. Heart disease (Father)" />
+          </div>
+        </fieldset>
+
+        <!-- TAB 4: LIFESTYLE & DIET -->
+        <fieldset id="sect_lifestyle" style="border: none; padding: 0; margin: 0; display: none; flex-direction: column; gap: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="smoking_status">Smoking Status</label>
+              <select class="dr-input" id="smoking_status" name="smoking_status">
+                <option value="No" {% if profile.smoking_status == "No" %}selected{% endif %}>Non-Smoker</option>
+                <option value="Yes" {% if profile.smoking_status == "Yes" %}selected{% endif %}>Active Smoker</option>
+                <option value="Former" {% if profile.smoking_status == "Former" %}selected{% endif %}>Former Smoker</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="alcohol_consumption">Alcohol Consumption</label>
+              <select class="dr-input" id="alcohol_consumption" name="alcohol_consumption">
+                <option value="No" {% if profile.alcohol_consumption == "No" %}selected{% endif %}>None</option>
+                <option value="Occasional" {% if profile.alcohol_consumption == "Occasional" %}selected{% endif %}>Occasional</option>
+                <option value="Regular" {% if profile.alcohol_consumption == "Regular" %}selected{% endif %}>Regular</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="exercise_frequency">Exercise Frequency</label>
+              <select class="dr-input" id="exercise_frequency" name="exercise_frequency">
+                <option value="None" {% if profile.exercise_frequency == "None" %}selected{% endif %}>Sedentary (No Exercise)</option>
+                <option value="Light" {% if profile.exercise_frequency == "Light" %}selected{% endif %}>Light (1-2 days/wk)</option>
+                <option value="Moderate" {% if profile.exercise_frequency == "Moderate" %}selected{% endif %}>Moderate (3-5 days/wk)</option>
+                <option value="Active" {% if profile.exercise_frequency == "Active" %}selected{% endif %}>Heavy Active (Daily)</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="sleep_duration">Average Sleep (Hours/Night)</label>
+              <input class="dr-input" id="sleep_duration" name="sleep_duration" type="number" step="0.5" min="0" max="24" value="{{ profile.sleep_duration }}" placeholder="7.5" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="diet_preference">Diet Preference</label>
+              <input class="dr-input" id="diet_preference" name="diet_preference" value="{{ profile.diet_preference }}" placeholder="e.g. Vegetarian, Keto, Low Sodium" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="water_intake">Daily Water Intake (Liters)</label>
+              <input class="dr-input" id="water_intake" name="water_intake" type="number" step="0.1" min="0" value="{{ profile.water_intake }}" placeholder="2.5" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <a href="{{ url_for('core.dashboard') }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.6rem 1.2rem;">Cancel</a>
+          <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Save Profile Passport</button>
+        </div>
+
+      </form>
+    </main>
+
+  </div>
+</div>
+
+<style>
+  .tab-btn {
+    border-color: var(--border) !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-weight: 600;
+  }
+  .tab-btn.active-tab {
+    border-color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+    color: var(--accent) !important;
+  }
+</style>
+
+<script>
+  function switchProfileTab(tabName) {
+    // Hide all sections
+    document.getElementById('sect_personal').style.display = 'none';
+    document.getElementById('sect_emergency').style.display = 'none';
+    document.getElementById('sect_medical').style.display = 'none';
+    document.getElementById('sect_lifestyle').style.display = 'none';
+    
+    // Deactivate all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active-tab');
+    });
+
+    // Show selected section
+    document.getElementById('sect_' + tabName).style.display = 'flex';
+    document.getElementById('tab_' + tabName).classList.add('active-tab');
+  }
+</script>
+{% endblock %}

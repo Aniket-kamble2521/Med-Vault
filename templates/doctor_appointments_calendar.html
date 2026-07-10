@@ -1,0 +1,62 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Appointment Calendar &amp; Registry</h1>
+    <p class="dr-page-lead">View all clinical bookings and check or update their appointment status (Scheduled, Waiting, In Progress, Completed, Cancelled).</p>
+
+    <div class="dr-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <h2 style="margin: 0; font-size: 1.2rem; color: var(--text);">Consultation Schedule</h2>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="{{ url_for('core.export_appointments_csv') }}" class="dr-btn-outline" style="text-decoration: none; font-size: 0.85rem; padding: 0.5rem 0.85rem;">Export CSV</a>
+          <a href="{{ url_for('core.doctor_appointment_new') }}" class="dr-btn-gradient" style="text-decoration: none; font-size: 0.85rem; padding: 0.5rem 0.85rem;">+ Add Appointment</a>
+        </div>
+      </div>
+
+      {% if events %}
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          {% for e in events %}
+            <article style="border: 1px solid var(--border); border-radius: 12px; padding: 1rem; background: var(--surface); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="background: var(--border); border-radius: 8px; padding: 0.5rem; text-align: center; min-width: 90px;">
+                  <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">{{ e.time }}</div>
+                  <div style="font-size: 0.9rem; font-weight: bold; color: var(--text);">{{ e.date }}</div>
+                </div>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.05rem; color: var(--text);">{{ e.patient_name }}</h3>
+                  <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--text-muted);">Reason: {{ e.reason or 'Consultation' }}</p>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Status badge -->
+                <span class="dr-badge 
+                  {% if e.status == 'waiting' %}dr-badge--wait
+                  {% elif e.status == 'in_progress' %}dr-badge--progress
+                  {% elif e.status == 'completed' %}dr-badge--wait
+                  {% elif e.status == 'cancelled' %}dr-badge--wait
+                  {% endif %}" style="text-transform: uppercase; font-size: 0.75rem;">
+                  {{ e.status }}
+                </span>
+
+                <!-- Status Update Form -->
+                <form method="post" action="{{ url_for('core.update_appointment_status', appt_id=e.id) }}" style="display: flex; align-items: center; gap: 0.5rem;">
+                  <select name="status" class="dr-input" style="margin-top: 0; padding: 0.35rem 0.5rem; font-size: 0.85rem; width: auto;" onchange="this.form.submit()">
+                    <option value="scheduled" {% if e.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                    <option value="waiting" {% if e.status == 'waiting' %}selected{% endif %}>Waiting</option>
+                    <option value="in_progress" {% if e.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="completed" {% if e.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if e.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                  </select>
+                </form>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="dr-hint">No scheduled appointments. Go to the dashboard to add some.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

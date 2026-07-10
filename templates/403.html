@@ -1,0 +1,37 @@
+{% extends "base_medvault.html" %}
+{% block content %}
+  <header class="mv-header" style="margin-bottom: 1.75rem">
+    <div class="mv-brand-row">
+      <div class="mv-logo" aria-hidden="true" style="background: var(--red); color: white;">
+        🚫
+      </div>
+      <div class="mv-brand-text">
+        <h1 class="mv-title"><span class="mv-title-accent">Access Denied</span></h1>
+        <p class="mv-tagline">HTTP 403 Forbidden</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="mv-auth-wrap">
+    <div class="mv-auth-card" style="text-align: center; padding: 2.5rem 2rem;">
+      <h2 style="margin: 0 0 1rem; font-size: 1.75rem; color: var(--red);">Restricted Area</h2>
+      <p class="mv-sub" style="margin-bottom: 2rem; line-height: 1.5;">
+        You do not have the required permissions to view this page. This area is reserved specifically for the authorized user role.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <a href="{{ url_for('core.index') }}" class="mv-btn mv-btn--patient" style="text-decoration: none; padding: 0.65rem; display: block; font-weight: bold; border-radius: 8px;">
+          Go to Home Portal
+        </a>
+        <form action="{{ url_for('auth.logout') }}" method="post" style="margin: 0; width: 100%;">
+          <button type="submit" class="mv-btn" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 100%; padding: 0.65rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            Sign Out
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mv-footer">
+    Protected by end-to-end encryption • HIPAA Compliant
+  </footer>
+{% endblock %}

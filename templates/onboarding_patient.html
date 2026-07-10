@@ -1,68 +1,332 @@
 {% extends "base_patient.html" %}
 {% block content %}
   <div class="dr-shell dr-shell--narrow">
-    <div class="onboard-wrap">
-      <div class="dr-panel onboard-step is-active" data-step="1">
-        <h1 class="dr-page-title">Welcome to MedVault</h1>
-        <p class="dr-page-lead">What matters most when you check your reports?</p>
-        <div class="dr-onboard-options">
-          <label class="dr-onboard-opt"><input type="radio" name="q1" value="accuracy" checked /> Verified and accurate details</label>
-          <label class="dr-onboard-opt"><input type="radio" name="q1" value="simple" /> Easy-to-read explanations</label>
-          <label class="dr-onboard-opt"><input type="radio" name="q1" value="speed" /> Fast access to answers</label>
-          <label class="dr-onboard-opt"><input type="radio" name="q1" value="all" /> All of these are important</label>
+    <div class="dr-panel">
+      <!-- Progress Bar Indicator -->
+      <div class="onboard-progress-container" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+          <span>Profile Setup Progress</span>
+          <span id="progress-text">Step 1 of 5: Personal Information</span>
         </div>
-        <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button">Continue</button>
-      </div>
-
-      <div class="dr-panel onboard-step" data-step="2">
-        <h1 class="dr-page-title">How often do you need help?</h1>
-        <p class="dr-page-lead">How often do you contact your doctor to understand meds or reports?</p>
-        <div class="dr-onboard-options">
-          <label class="dr-onboard-opt"><input type="radio" name="q2" value="often" checked /> Almost every time</label>
-          <label class="dr-onboard-opt"><input type="radio" name="q2" value="sometimes" /> A few times per report</label>
-          <label class="dr-onboard-opt"><input type="radio" name="q2" value="complex" /> Only for complex cases</label>
-          <label class="dr-onboard-opt"><input type="radio" name="q2" value="rare" /> Hardly ever</label>
-        </div>
-        <div class="dr-onboard-actions">
-          <button class="dr-btn-outline dr-btn-gradient--inline onboard-prev" type="button">Back</button>
-          <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button">Continue</button>
+        <div style="width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
+          <div id="progress-bar" style="width: 20%; height: 100%; background: var(--accent); transition: width 0.3s ease;"></div>
         </div>
       </div>
 
-      <div class="dr-panel onboard-step" data-step="3">
-        <h1 class="dr-page-title">Scan reports clearly</h1>
-        <p class="dr-page-lead">A quick guide before you upload documents.</p>
-        <div class="dr-scan-guide">
-          <div class="dr-scan-item">
-            <div class="dr-scan-icon" aria-hidden="true">☀</div>
+      <!-- Main Form -->
+      <form method="post" action="{{ url_for('core.complete_onboarding') }}" id="onboard-form" onsubmit="return handleFormSubmit()">
+        
+        <!-- STEP 1: PERSONAL INFORMATION -->
+        <div class="onboard-step active" id="step-1">
+          <h2 style="margin-top: 0; color: var(--text);">Step 1: Personal Information</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Let's start with your basic personal details.
+          </p>
+
+          <label class="dr-label-full" for="full_name">Full Name <span style="color: var(--red, #ef4444)">*</span></label>
+          <input class="dr-input" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ theme.display_name }}" placeholder="e.g. John Doe" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
             <div>
-              <strong>Good lighting</strong>
-              <div class="dr-hint">Bright, even light with no shadows.</div>
+              <label class="dr-label-full" for="age">Age <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="age" name="age" type="number" min="0" max="150" required placeholder="e.g. 30" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="gender">Gender</label>
+              <select class="dr-input" id="gender" name="gender">
+                <option value="Female">Female</option>
+                <option value="Male" selected>Male</option>
+                <option value="Other">Other</option>
+                <option value="Prefer Not to Say">Prefer Not to Say</option>
+              </select>
             </div>
           </div>
-          <div class="dr-scan-item">
-            <div class="dr-scan-icon" aria-hidden="true">◎</div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
             <div>
-              <strong>Sharp focus</strong>
-              <div class="dr-hint">Text should be readable, no blur.</div>
+              <label class="dr-label-full" for="dob">Date of Birth <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="dob" name="dob" type="date" required />
+            </div>
+            <div>
+              <label class="dr-label-full" for="blood_group">Blood Group</label>
+              <select class="dr-input" id="blood_group" name="blood_group">
+                <option value="">Select...</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
             </div>
           </div>
-          <div class="dr-scan-item">
-            <div class="dr-scan-icon" aria-hidden="true">▢</div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
             <div>
-              <strong>Full frame</strong>
-              <div class="dr-hint">Capture the complete report area.</div>
+              <label class="dr-label-full" for="height">Height (cm)</label>
+              <input class="dr-input" id="height" name="height" type="number" min="0" max="300" step="0.1" placeholder="e.g. 175" />
             </div>
+            <div>
+              <label class="dr-label-full" for="weight">Weight (kg)</label>
+              <input class="dr-input" id="weight" name="weight" type="number" min="0" max="500" step="0.1" placeholder="e.g. 70" />
+            </div>
+          </div>
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: flex-end;">
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(2)">Next Step &rarr;</button>
           </div>
         </div>
-        <div class="dr-scan-preview">Correct scan framing preview</div>
-        <form method="post" action="{{ url_for('core.complete_onboarding') }}">
-          <div class="dr-onboard-actions">
-            <button class="dr-btn-outline dr-btn-gradient--inline onboard-prev" type="button">Back</button>
-            <button class="dr-btn-gradient dr-btn-gradient--inline" type="submit">Explore my health</button>
+
+        <!-- STEP 2: CONTACT DETAILS -->
+        <div class="onboard-step" id="step-2" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 2: Contact Details</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Provide your contact details and emergency contact details.
+          </p>
+
+          <label class="dr-label-full" for="phone">Phone Number <span style="color: var(--red, #ef4444)">*</span></label>
+          <input class="dr-input" id="phone" name="phone" type="tel" required placeholder="e.g. +1 555-0199" />
+
+          <label class="dr-label-full" for="email" style="margin-top: 1.2rem;">Email Address <span style="color: var(--red, #ef4444)">*</span></label>
+          <input class="dr-input" id="email" name="email" type="email" required value="{{ theme.username }}@medvault.com" placeholder="e.g. patient@example.com" />
+
+          <label class="dr-label-full" for="address" style="margin-top: 1.2rem;">Address</label>
+          <input class="dr-input" id="address" name="address" placeholder="e.g. 123 Main St, Apt 4" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="emergency_contact_name">Emergency Contact Name <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="emergency_contact_name" name="emergency_contact_name" required placeholder="e.g. Jane Doe" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="emergency_contact_number">Emergency Contact Phone <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="emergency_contact_number" name="emergency_contact_number" type="tel" required placeholder="e.g. +1 555-0100" />
+            </div>
           </div>
-        </form>
-      </div>
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(1)">&larr; Back</button>
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(3)">Next Step &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: MEDICAL INFORMATION -->
+        <div class="onboard-step" id="step-3" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 3: Medical Information</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Please detail any medical conditions and history.
+          </p>
+
+          <label class="dr-label-full" for="existing_diseases">Existing Diseases</label>
+          <textarea class="dr-input" id="existing_diseases" name="existing_diseases" rows="2" placeholder="e.g. Hypertension, Diabetes, Asthma"></textarea>
+
+          <label class="dr-label-full" for="current_medications" style="margin-top: 1rem;">Current Medications</label>
+          <textarea class="dr-input" id="current_medications" name="current_medications" rows="2" placeholder="e.g. Lisinopril 10mg daily"></textarea>
+
+          <label class="dr-label-full" for="allergies" style="margin-top: 1rem;">Allergies</label>
+          <textarea class="dr-input" id="allergies" name="allergies" rows="2" placeholder="e.g. Penicillin, Peanuts"></textarea>
+
+          <label class="dr-label-full" for="previous_surgeries" style="margin-top: 1rem;">Previous Surgeries</label>
+          <textarea class="dr-input" id="previous_surgeries" name="previous_surgeries" rows="2" placeholder="e.g. Appendectomy 2018"></textarea>
+
+          <label class="dr-label-full" for="family_medical_history" style="margin-top: 1rem;">Family Medical History</label>
+          <textarea class="dr-input" id="family_medical_history" name="family_medical_history" rows="2" placeholder="e.g. Heart disease (father)"></textarea>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="smoking_status">Smoking Status</label>
+              <select class="dr-input" id="smoking_status" name="smoking_status">
+                <option value="Non-smoker" selected>Non-smoker</option>
+                <option value="Former Smoker">Former Smoker</option>
+                <option value="Active Smoker">Active Smoker</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="alcohol_consumption">Alcohol Consumption</label>
+              <select class="dr-input" id="alcohol_consumption" name="alcohol_consumption">
+                <option value="Non-drinker" selected>Non-drinker</option>
+                <option value="Social Drinker">Social Drinker</option>
+                <option value="Regular Drinker">Regular Drinker</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(2)">&larr; Back</button>
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(4)">Next Step &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: LIFESTYLE -->
+        <div class="onboard-step" id="step-4" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 4: Lifestyle Details</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Share your general habits and daily routine.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="exercise_frequency">Exercise Frequency</label>
+              <select class="dr-input" id="exercise_frequency" name="exercise_frequency">
+                <option value="Sedentary">Sedentary</option>
+                <option value="1-2 times/week" selected>1-2 times/week</option>
+                <option value="3-4 times/week">3-4 times/week</option>
+                <option value="Daily">Daily</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="sleep_duration">Sleep Duration (hrs/night)</label>
+              <input class="dr-input" id="sleep_duration" name="sleep_duration" type="number" min="0" max="24" step="0.5" placeholder="e.g. 7.5" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="diet_preference">Diet Preference</label>
+              <select class="dr-input" id="diet_preference" name="diet_preference">
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="Non-Vegetarian" selected>Non-Vegetarian</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="water_intake">Water Intake (Liters/day)</label>
+              <input class="dr-input" id="water_intake" name="water_intake" type="number" min="0" max="20" step="0.1" placeholder="e.g. 2.5" />
+            </div>
+          </div>
+
+          <label class="dr-label-full" for="occupation" style="margin-top: 1.2rem;">Occupation</label>
+          <input class="dr-input" id="occupation" name="occupation" placeholder="e.g. Software Engineer" />
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(3)">&larr; Back</button>
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(5)">Next Step &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 5: PREFERENCES -->
+        <div class="onboard-step" id="step-5" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 5: Preferences</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Lastly, tell us your communication preferences.
+          </p>
+
+          <label class="dr-label-full" for="preferred_language">Preferred Language</label>
+          <input class="dr-input" id="preferred_language" name="preferred_language" placeholder="e.g. English" value="English" />
+
+          <label class="dr-label-full" for="preferred_consultation_mode" style="margin-top: 1.2rem;">Preferred Consultation Mode</label>
+          <select class="dr-input" id="preferred_consultation_mode" name="preferred_consultation_mode">
+            <option value="Video">Video</option>
+            <option value="Audio">Audio</option>
+            <option value="Chat">Chat</option>
+            <option value="In-person" selected>In-person</option>
+          </select>
+
+          <div class="dr-form-actions" style="margin-top: 2.5rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(4)">&larr; Back</button>
+            <button type="submit" id="submit-btn" class="dr-btn-gradient dr-btn-gradient--inline">Complete Setup &amp; Enter Portal</button>
+          </div>
+          
+          <!-- Loading Indicator -->
+          <div id="loading-indicator" style="display: none; text-align: center; margin-top: 1rem; color: var(--text-muted);">
+            <span style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 0.5rem;"></span>
+            <span>Saving your profile setup...</span>
+          </div>
+        </div>
+
+      </form>
     </div>
   </div>
+
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Wizard JavaScript Logic -->
+  <script>
+    let currentActiveStep = 1;
+
+    function nextStep(step) {
+      // Validate the current step fields
+      const container = document.getElementById('step-' + (step - 1));
+      const inputs = container.querySelectorAll('[required]');
+      let valid = true;
+      inputs.forEach(input => {
+        if (!input.checkValidity()) {
+          input.reportValidity();
+          valid = false;
+        }
+      });
+
+      if (!valid) return;
+
+      // Hide all steps
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById('step-' + i).style.display = 'none';
+      }
+
+      // Show target step
+      document.getElementById('step-' + step).style.display = 'block';
+      currentActiveStep = step;
+
+      // Update progress bar
+      const pct = step * 20;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      
+      const stepNames = {
+        1: "Personal Information",
+        2: "Contact Details",
+        3: "Medical Information",
+        4: "Lifestyle Details",
+        5: "Preferences"
+      };
+      document.getElementById('progress-text').innerText = "Step " + step + " of 5: " + stepNames[step];
+    }
+
+    function prevStep(step) {
+      // Hide all steps
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById('step-' + i).style.display = 'none';
+      }
+
+      // Show target step
+      document.getElementById('step-' + step).style.display = 'block';
+      currentActiveStep = step;
+
+      // Update progress bar
+      const pct = step * 20;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      
+      const stepNames = {
+        1: "Personal Information",
+        2: "Contact Details",
+        3: "Medical Information",
+        4: "Lifestyle Details",
+        5: "Preferences"
+      };
+      document.getElementById('progress-text').innerText = "Step " + step + " of 5: " + stepNames[step];
+    }
+
+    function handleFormSubmit() {
+      // Disable the submit button to avoid duplicate submissions
+      const btn = document.getElementById('submit-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+      }
+      
+      // Show loading indicator
+      const loader = document.getElementById('loading-indicator');
+      if (loader) {
+        loader.style.display = 'block';
+      }
+      
+      return true;
+    }
+  </script>
 {% endblock %}

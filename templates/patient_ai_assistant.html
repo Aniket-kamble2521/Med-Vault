@@ -39,7 +39,7 @@
               <strong>Current Prescriptions:</strong>
               <ul class="pd-activity-list">
                 {% for rx in current_prescriptions %}
-                <li>{{ rx.medicine_name }} - {{ rx.dose }}</li>
+                <li>{{ rx.medicine_name }} - {{ rx.dosage }}</li>
                 {% endfor %}
               </ul>
             </div>
@@ -128,8 +128,8 @@
         </div>
         
         <div class="pd-ai-actions">
-          <a href="{{ url_for('modules.roadmap') }}#appointments-section" class="pd-btn-primary">Book Appointment</a>
-          <a href="{{ url_for('modules.roadmap') }}#prescriptions-section" class="pd-btn-secondary">Manage Prescriptions</a>
+          <a href="{{ url_for('core.book_appointment') }}" class="pd-btn-primary">Book Appointment</a>
+          <a href="{{ url_for('core.medicine_reminders') }}" class="pd-btn-secondary">Manage Prescriptions</a>
         </div>
       </section>
       {% endif %}

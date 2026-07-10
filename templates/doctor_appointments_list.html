@@ -1,34 +1,143 @@
 {% extends "base_doctor.html" %}
 {% block content %}
-  <div class="dr-shell">
-    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
-    <h1 class="dr-page-title">All appointments</h1>
-    <p class="dr-page-lead">Up to 200 recent visits, newest first.</p>
+<div class="dr-shell">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Appointments Registry</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Manage scheduling, update statuses, and search appointment logs (Total: {{ total_count }} records).</p>
+    </div>
+    <a href="{{ url_for('core.doctor_appointment_new') }}" class="dr-btn-gradient" style="text-decoration: none; padding: 0.6rem 1.2rem; font-size: 0.9rem; border-radius: 8px;">+ Schedule Appointment</a>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="dr-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <form method="get" action="{{ url_for('core.doctor_appointments_all') }}" style="display: flex; flex-direction: column; gap: 1rem;">
+      <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div style="position: relative;">
+          <input type="text" name="q" value="{{ q or '' }}" placeholder="Search patient name or reason..." class="dr-input" style="margin: 0; padding-left: 2.5rem; width: 100%; box-sizing: border-box;" />
+          <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+        </div>
+        <div>
+          <select name="date" class="dr-input" style="margin: 0; width: auto;" onchange="this.form.submit()">
+            <option value="" {% if date_filter == '' %}selected{% endif %}>All Dates</option>
+            <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today Only</option>
+          </select>
+        </div>
+        <div>
+          <select name="sort" class="dr-input" style="margin: 0; width: auto;" onchange="this.form.submit()">
+            <option value="time_asc" {% if sort == 'time_asc' %}selected{% endif %}>Time (Soonest First)</option>
+            <option value="time_desc" {% if sort == 'time_desc' %}selected{% endif %}>Time (Latest First)</option>
+            <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Patient Name (A-Z)</option>
+            <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Patient Name (Z-A)</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="submit" class="dr-btn-gradient" style="padding: 0.65rem 1.25rem;">Apply Filters</button>
+          {% if q or status_filter or date_filter or sort != 'time_asc' %}
+            <a href="{{ url_for('core.doctor_appointments_all') }}" class="dr-btn-outline" style="text-decoration: none; text-align: center; line-height: 2.2rem; height: 2.2rem; padding: 0 1rem; border-radius: 8px;">Clear</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Tab Filters for Status -->
+      <input type="hidden" name="status" id="status-filter-input" value="{{ status_filter or '' }}" />
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+        {% set statuses = [('', 'All'), ('scheduled', 'Scheduled'), ('waiting', 'Waiting'), ('in_progress', 'In Progress'), ('completed', 'Completed'), ('cancelled', 'Cancelled')] %}
+        {% for val, label in statuses %}
+          <button type="button" class="status-tab-btn" onclick="setStatusFilter('{{ val }}')" style="padding: 0.5rem 1rem; border: none; background: {% if status_filter == val %}var(--accent){% else %}transparent{% endif %}; color: {% if status_filter == val %}#ffffff{% else %}var(--text-muted){% endif %}; font-weight: bold; cursor: pointer; border-radius: 6px; font-size: 0.85rem; transition: all 0.2s;">
+            {{ label }}
+          </button>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Appointments Grid/List -->
+  <div class="dr-panel" style="padding: 0; overflow: hidden;">
     {% if items %}
-      <section class="dr-panel">
-        <ul class="dr-appt-list" style="margin: 0">
-          {% for it in items %}
-            <li class="dr-appt-row">
-              <div class="dr-appt-info">
-                <strong>{{ it.name }}</strong>
-                <span>{{ it.sub }}</span>
-              </div>
-              <div class="dr-appt-right">
-                <span class="dr-appt-time" style="font-size: 0.8rem">{{ it.when }}</span>
-                {% if it.status == "waiting" %}
-                  <span class="dr-badge dr-badge--wait">waiting</span>
-                {% elif it.status == "in_progress" %}
-                  <span class="dr-badge dr-badge--progress">in progress</span>
-                {% else %}
-                  <span class="dr-badge dr-badge--sched">scheduled</span>
-                {% endif %}
-              </div>
-            </li>
-          {% endfor %}
-        </ul>
-      </section>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border); background: color-mix(in srgb, var(--border) 15%, transparent);">
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Patient</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Reason for Visit</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Scheduled Time</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Duration</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Status</th>
+              <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+              <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='color-mix(in srgb, var(--accent) 5%, transparent)'" onmouseout="this.style.backgroundColor='transparent'">
+                <td style="padding: 1rem; font-weight: bold; color: var(--text);">{{ it.name }}</td>
+                <td style="padding: 1rem; color: var(--text);">{{ it.sub }}</td>
+                <td style="padding: 1rem; color: var(--text);">{{ it.when }}</td>
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">{{ it.duration }} mins</td>
+                <td style="padding: 1rem;">
+                  {% if it.status == "waiting" %}
+                    <span class="dr-badge dr-badge--wait" style="background: #f59e0b; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">waiting</span>
+                  {% elif it.status == "in_progress" %}
+                    <span class="dr-badge dr-badge--progress" style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">in progress</span>
+                  {% elif it.status == "completed" %}
+                    <span class="dr-badge" style="background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">completed</span>
+                  {% elif it.status == "cancelled" %}
+                    <span class="dr-badge" style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">cancelled</span>
+                  {% else %}
+                    <span class="dr-badge dr-badge--sched" style="background: #64748b; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">scheduled</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 1rem; text-align: right;">
+                  <form method="post" action="{{ url_for('core.update_appointment_status', appt_id=it.id) }}" style="display: inline-block;">
+                    <select name="status" class="dr-input" style="margin: 0; padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;" onchange="this.form.submit()">
+                      <option value="scheduled" {% if it.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                      <option value="waiting" {% if it.status == 'waiting' %}selected{% endif %}>Waiting</option>
+                      <option value="in_progress" {% if it.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                      <option value="completed" {% if it.status == 'completed' %}selected{% endif %}>Completed</option>
+                      <option value="cancelled" {% if it.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Showing page {{ page }} of {{ total_pages }}</span>
+          <div style="display: flex; gap: 0.5rem;">
+            {% if page > 1 %}
+              <a href="{{ url_for('core.doctor_appointments_all', page=page-1, q=q, status=status_filter, date=date_filter, sort=sort) }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">&larr; Previous</a>
+            {% else %}
+              <span class="dr-btn-outline" style="opacity: 0.5; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; cursor: not-allowed;">&larr; Previous</span>
+            {% endif %}
+            {% if page < total_pages %}
+              <a href="{{ url_for('core.doctor_appointments_all', page=page+1, q=q, status=status_filter, date=date_filter, sort=sort) }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">Next &rarr;</a>
+            {% else %}
+              <span class="dr-btn-outline" style="opacity: 0.5; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; cursor: not-allowed;">Next &rarr;</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
     {% else %}
-      <p class="dr-page-lead">No appointments yet. Schedule one from the dashboard.</p>
+      <div style="padding: 4rem 2rem; text-align: center;">
+        <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">📅</span>
+        <h3 style="margin: 0; color: var(--text);">No Appointments Found</h3>
+        <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem;">No appointments fit the applied search criteria or tab filters.</p>
+        <a href="{{ url_for('core.doctor_appointment_new') }}" class="dr-btn-gradient" style="text-decoration: none; padding: 0.5rem 1rem;">Schedule Appointment</a>
+      </div>
     {% endif %}
   </div>
+</div>
+
+<script>
+  function setStatusFilter(val) {
+    document.getElementById('status-filter-input').value = val;
+    document.getElementById('status-filter-input').form.submit();
+  }
+</script>
 {% endblock %}

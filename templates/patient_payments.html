@@ -1,0 +1,90 @@
+{% extends "base_patient.html" %}
+{% block content %}
+<div class="dr-shell">
+  <div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('core.dashboard') }}" class="dr-back-link">&larr; Return to Dashboard</a>
+    <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Billing &amp; Payments</h1>
+    <p class="dr-hint" style="margin: 0.2rem 0 0;">Track your consultation fees, download payment receipts, and view pending invoices.</p>
+  </div>
+
+  <!-- KPI summary row -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="dr-panel" style="padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border-top: 4px solid var(--accent); background: var(--surface);">
+      <span style="font-size: 2.2rem;">💳</span>
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; font-weight: 600; text-transform: uppercase;">Total Settled</span>
+        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">${{ "%.2f"|format(total_paid) }}</strong>
+      </div>
+    </div>
+    <div class="dr-panel" style="padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border-top: 4px solid #f59e0b; background: var(--surface);">
+      <span style="font-size: 2.2rem;">⏱️</span>
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; font-weight: 600; text-transform: uppercase;">Outstanding Dues</span>
+        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">${{ "%.2f"|format(total_pending) }}</strong>
+      </div>
+    </div>
+    <div class="dr-panel" style="padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border-top: 4px solid #10b981; background: var(--surface);">
+      <span style="font-size: 2.2rem;">🧾</span>
+      <div>
+        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; font-weight: 600; text-transform: uppercase;">Invoices Generated</span>
+        <strong style="font-size: 1.6rem; color: var(--text); font-weight: 800;">{{ payments|length }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Transactions List -->
+  <div class="dr-panel" style="padding: 1.75rem; background: var(--surface);">
+    <h2 class="dr-side-title" style="margin: 0 0 1.25rem 0; font-size: 1.2rem; font-weight: 700; color: var(--text);">Invoice &amp; Transaction History</h2>
+    
+    {% if payments %}
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600;">
+              <th style="padding: 0.75rem 1rem;">ID</th>
+              <th style="padding: 0.75rem 1rem;">Doctor / Provider</th>
+              <th style="padding: 0.75rem 1rem;">Date</th>
+              <th style="padding: 0.75rem 1rem;">Amount</th>
+              <th style="padding: 0.75rem 1rem;">Method</th>
+              <th style="padding: 0.75rem 1rem;">Transaction ID</th>
+              <th style="padding: 0.75rem 1rem;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pay in payments %}
+              <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s; cursor: default;" onmouseover="this.style.background='rgba(var(--accent-rgb), 0.03)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 1rem; font-weight: 700; color: var(--text-muted);">#PAY-{{ pay.id }}</td>
+                <td style="padding: 1rem; font-weight: 700; color: var(--text);">{{ pay.doctor_name }}</td>
+                <td style="padding: 1rem; color: var(--text-muted);">{{ pay.date }}</td>
+                <td style="padding: 1rem; font-weight: 800; color: var(--text);">${{ "%.2f"|format(pay.fee) }}</td>
+                <td style="padding: 1rem; color: var(--text-muted);">{{ pay.method }}</td>
+                <td style="padding: 1rem; font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">{{ pay.transaction_id }}</td>
+                <td style="padding: 1rem;">
+                  <span style="display: inline-block; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+                    {% if pay.status == 'Paid' %}
+                      background: rgba(16, 185, 129, 0.12); color: #10b981;
+                    {% elif pay.status == 'Pending' %}
+                      background: rgba(245, 158, 11, 0.12); color: #f59e0b;
+                    {% elif pay.status == 'Refunded' %}
+                      background: rgba(59, 130, 246, 0.12); color: var(--accent);
+                    {% else %}
+                      background: rgba(239, 68, 68, 0.12); color: #ef4444;
+                    {% endif %}">
+                    {{ pay.status }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 3rem 1.5rem; border: 2px dashed var(--border); border-radius: 12px;">
+        <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">💳</span>
+        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text);">No Invoices Found</h3>
+        <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); max-width: 320px; margin: 0 auto;">You do not have any transaction history or outstanding consultation invoices recorded.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

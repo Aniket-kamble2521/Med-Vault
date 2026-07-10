@@ -1,0 +1,263 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+<div class="dr-shell" style="position: relative;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link" style="text-decoration: none; font-size: 0.9rem; color: var(--accent);">&larr; Dashboard</a>
+      <h1 class="dr-page-title" style="margin: 0.5rem 0 0;">Patient Registry</h1>
+      <p class="dr-hint" style="margin: 0.2rem 0 0;">Manage and view your patient base (Total: {{ total_count }} patients).</p>
+    </div>
+    <a href="{{ url_for('core.doctor_patient_new') }}" class="dr-btn-gradient" style="text-decoration: none; padding: 0.6rem 1.2rem; font-size: 0.9rem; border-radius: 8px;">+ Onboard Patient</a>
+  </div>
+
+  <!-- Search & Filter Card -->
+  <div class="dr-panel" style="margin-bottom: 2rem; padding: 1.25rem;">
+    <form method="get" action="{{ url_for('core.doctor_patients') }}" style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div style="position: relative;">
+        <input type="text" name="q" value="{{ q or '' }}" placeholder="Search by name, phone, notes..." class="dr-input" style="margin: 0; padding-left: 2.5rem; width: 100%; box-sizing: border-box;" />
+        <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+      </div>
+      <div>
+        <select name="sort" class="dr-input" style="margin: 0; width: auto;" onchange="this.form.submit()">
+          <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+          <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+          <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Date Added (Newest)</option>
+          <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Date Added (Oldest)</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="dr-btn-gradient" style="padding: 0.65rem 1.25rem;">Apply Filters</button>
+        {% if q or sort != 'name_asc' %}
+          <a href="{{ url_for('core.doctor_patients') }}" class="dr-btn-outline" style="text-decoration: none; text-align: center; padding: 0.5rem 1rem; border-radius: 8px;">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Main Grid to fit list and potential details sidebar -->
+  <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+    
+    <!-- Patient List Container -->
+    <div class="dr-panel" style="padding: 0; overflow: hidden; background: var(--surface);">
+      {% if patients %}
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border); background: color-mix(in srgb, var(--border) 15%, transparent);">
+                <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Patient Name</th>
+                <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Contact Number</th>
+                <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Date Added</th>
+                <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Clinical Risk</th>
+                <th style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in patients %}
+                <tr style="border-bottom: 1px solid var(--border); cursor: pointer; transition: background-color 0.2s;" onclick="openPatientDrawer('{{ p.id }}')" onmouseover="this.style.backgroundColor='color-mix(in srgb, var(--accent) 5%, transparent)'" onmouseout="this.style.backgroundColor='transparent'">
+                  <td style="padding: 1rem; font-weight: bold; color: var(--text);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <span style="display: inline-flex; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold;">
+                        {{ p.full_name[:2] | upper }}
+                      </span>
+                      {{ p.full_name }}
+                    </div>
+                  </td>
+                  <td style="padding: 1rem; color: var(--text);">{{ p.phone or 'No phone number' }}</td>
+                  <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">{{ p.created_at }}</td>
+                  <td style="padding: 1rem; color: var(--text);">
+                    <span style="background: rgba(59, 130, 246, 0.1); color: var(--accent); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                      General Care
+                    </span>
+                  </td>
+                  <td style="padding: 1rem; text-align: right;" onclick="event.stopPropagation()">
+                    <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                      <a href="{{ url_for('core.doctor_consultation_workspace') }}?patient_id={{ p.id }}" class="dr-btn-outline" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; border-radius: 6px; text-decoration: none;">
+                        🩺 Consult
+                      </a>
+                      <a href="{{ url_for('core.doctor_prescription_new') }}?patient_name={{ p.full_name }}" class="dr-btn-outline" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; border-radius: 6px; text-decoration: none;">
+                        💊 Prescribe
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        {% if total_pages > 1 %}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Showing page {{ page }} of {{ total_pages }}</span>
+            <div style="display: flex; gap: 0.5rem;">
+              {% if page > 1 %}
+                <a href="{{ url_for('core.doctor_patients', page=page-1, q=q, sort=sort) }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">&larr; Previous</a>
+              {% else %}
+                <span class="dr-btn-outline" style="opacity: 0.5; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; cursor: not-allowed;">&larr; Previous</span>
+              {% endif %}
+              {% if page < total_pages %}
+                <a href="{{ url_for('core.doctor_patients', page=page+1, q=q, sort=sort) }}" class="dr-btn-outline" style="text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">Next &rarr;</a>
+              {% else %}
+                <span class="dr-btn-outline" style="opacity: 0.5; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px; cursor: not-allowed;">Next &rarr;</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% else %}
+        <!-- Empty State -->
+        <div style="padding: 4rem 2rem; text-align: center;">
+          <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">👥</span>
+          <h3 style="margin: 0; color: var(--text);">No Patients Found</h3>
+          <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem;">There are no patients matching your current search parameters.</p>
+          <a href="{{ url_for('core.doctor_patient_new') }}" class="dr-btn-gradient" style="text-decoration: none; padding: 0.5rem 1rem;">Register New Patient</a>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- PATIENT CLINICAL HISTORY DRAWER (SLIDE-OUT OVERLAY PANEL) -->
+  <div id="patient_drawer" style="position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: var(--surface); box-shadow: -10px 0 30px rgba(0,0,0,0.1); border-left: 1px solid var(--border); z-index: 1000; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(15px);">
+    <!-- Drawer Header -->
+    <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: color-mix(in srgb, var(--bg) 95%, var(--text));">
+      <div>
+        <h3 id="drawer_name" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text);">Patient Name</h3>
+        <span id="drawer_risk_badge" style="font-size: 0.72rem; font-weight: bold; background: rgba(59, 130, 246, 0.15); color: var(--accent); padding: 0.15rem 0.4rem; border-radius: 4px; margin-top: 0.2rem; display: inline-block;">Risk: Low</span>
+      </div>
+      <button onclick="closePatientDrawer()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; padding: 0.25rem;">&times;</button>
+    </div>
+
+    <!-- Drawer Content (Scrollable) -->
+    <div id="drawer_body" style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem;">
+      <!-- Clinical Vitals Overview -->
+      <div>
+        <h4 style="margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Vitals Scorecard</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div style="border: 1px solid var(--border); padding: 0.75rem; border-radius: 10px; text-align: center; background: var(--bg);">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Blood Pressure</div>
+            <strong id="drawer_bp" style="font-size: 1.1rem; color: var(--text);">120/80</strong>
+          </div>
+          <div style="border: 1px solid var(--border); padding: 0.75rem; border-radius: 10px; text-align: center; background: var(--bg);">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Heart Rate</div>
+            <strong id="drawer_hr" style="font-size: 1.1rem; color: var(--text);">72 bpm</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical Alerts -->
+      <div style="background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.15); padding: 0.75rem; border-radius: 12px;">
+        <h4 style="margin: 0 0 0.35rem; font-size: 0.85rem; color: #ef4444; font-weight: 700;">Critical Clinical Alerts</h4>
+        <div style="font-size: 0.8rem; line-height: 1.4; color: var(--text);">
+          <strong>Allergies:</strong> <span id="drawer_allergies" style="color: #b91c1c;">None</span><br/>
+          <strong>Conditions:</strong> <span id="drawer_conditions">None</span>
+        </div>
+      </div>
+
+      <!-- Historical Prescriptions -->
+      <div>
+        <h4 style="margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Active Medications</h4>
+        <div id="drawer_prescriptions_list" style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8rem;">
+          <!-- JS generated -->
+        </div>
+      </div>
+
+      <!-- Uploaded Files -->
+      <div>
+        <h4 style="margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Diagnostic Files &amp; Reports</h4>
+        <div id="drawer_files_list" style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <!-- JS generated -->
+        </div>
+      </div>
+
+      <!-- Update Risk & Notes Form -->
+      <form id="drawer_clinical_form" method="post" style="border-top: 1px solid var(--border); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+        <div>
+          <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 0.25rem;">Adjust Clinical Risk Level</label>
+          <select id="drawer_risk_select" name="risk_level" class="dr-input" style="margin-top: 0;">
+            <option value="Low">🟢 Low Risk</option>
+            <option value="Medium">🟡 Medium Risk</option>
+            <option value="High">🔴 High Risk</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 0.25rem;">Clinical Notes &amp; History</label>
+          <textarea id="drawer_notes_textarea" name="notes" rows="3" class="dr-input" style="margin-top: 0;" placeholder="Add clinical review details..."></textarea>
+        </div>
+        <button type="submit" class="dr-btn-gradient" style="padding: 0.55rem 1rem; width: 100%;">Save Patient Record</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function openPatientDrawer(patientId) {
+    const drawer = document.getElementById('patient_drawer');
+    
+    // Fetch patient data from JSON details endpoint
+    fetch('/doctor/patient/' + patientId + '/details')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('drawer_name').innerText = data.matched ? data.email.split('@')[0].toUpperCase() : 'General Patient';
+        document.getElementById('drawer_risk_badge').innerText = 'Risk: ' + data.risk_level;
+        document.getElementById('drawer_risk_badge').style.background = data.risk_level === 'High' ? 'rgba(239, 68, 68, 0.15)' : (data.risk_level === 'Medium' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)');
+        document.getElementById('drawer_risk_badge').style.color = data.risk_level === 'High' ? '#ef4444' : (data.risk_level === 'Medium' ? '#f59e0b' : '#10b981');
+        
+        // Vitals BP and HR
+        if (data.vitals && data.vitals.length > 0) {
+          document.getElementById('drawer_bp').innerText = data.vitals[0].bp_systolic + '/' + data.vitals[0].bp_diastolic;
+          document.getElementById('drawer_hr').innerText = data.vitals[0].heart_rate + ' bpm';
+        } else {
+          document.getElementById('drawer_bp').innerText = 'N/A';
+          document.getElementById('drawer_hr').innerText = 'N/A';
+        }
+
+        document.getElementById('drawer_allergies').innerText = data.allergies;
+        document.getElementById('drawer_conditions').innerText = data.conditions;
+
+        // Populate Medications
+        const prescContainer = document.getElementById('drawer_prescriptions_list');
+        prescContainer.innerHTML = '';
+        if (data.prescriptions && data.prescriptions.length > 0) {
+          data.prescriptions.forEach(p => {
+            const li = document.createElement('div');
+            li.style.cssText = 'border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;';
+            li.innerHTML = '<strong>' + p.medicine_name + '</strong><div style="color: var(--text-muted); font-size: 0.72rem;">' + p.dosage + ' &bull; ' + p.frequency + '</div>';
+            prescContainer.appendChild(li);
+          });
+        } else {
+          prescContainer.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">No active prescriptions</span>';
+        }
+
+        // Populate Files
+        const filesContainer = document.getElementById('drawer_files_list');
+        filesContainer.innerHTML = '';
+        if (data.files && data.files.length > 0) {
+          data.files.forEach(f => {
+            const a = document.createElement('a');
+            a.href = '/doctor/emergency-preview-file/' + f.id;
+            a.target = '_blank';
+            a.style.cssText = 'display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; text-decoration: none; color: var(--text); padding: 0.35rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg);';
+            a.innerHTML = '<span style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 180px;">📄 ' + f.filename + '</span><span style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.15); color: var(--accent); padding: 0.1rem 0.3rem; border-radius: 3px;">' + f.category + '</span>';
+            filesContainer.appendChild(a);
+          });
+        } else {
+          filesContainer.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">No diagnostic reports uploaded</span>';
+        }
+
+        // Action Form URLs
+        document.getElementById('drawer_clinical_form').action = '/doctor/patient/' + data.patient_db_id + '/update-clinical';
+        document.getElementById('drawer_notes_textarea').value = data.notes;
+        document.getElementById('drawer_risk_select').value = data.risk_level;
+
+        // Slide drawer out
+        drawer.style.right = '0';
+      });
+  }
+
+  function closePatientDrawer() {
+    document.getElementById('patient_drawer').style.right = '-420px';
+  }
+</script>
+{% endblock %}

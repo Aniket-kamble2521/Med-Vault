@@ -1,0 +1,67 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Leave &amp; Vacation Management</h1>
+    <p class="dr-page-lead">Schedule upcoming vacations, leaves, or clinical offline days. Patients will see you as unavailable on these dates.</p>
+
+    <div class="dr-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+      <!-- Add Leave Form -->
+      <aside class="dr-layout-side">
+        <div class="dr-panel">
+          <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--text);">Schedule Leave</h2>
+          <form method="post" action="{{ url_for('core.doctor_leaves') }}" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="start_date">Start Date</label>
+              <input class="dr-input" id="start_date" name="start_date" type="date" required />
+            </div>
+            <div>
+              <label class="dr-label-full" for="end_date">End Date</label>
+              <input class="dr-input" id="end_date" name="end_date" type="date" required />
+            </div>
+            <div>
+              <label class="dr-label-full" for="reason">Reason / Notes</label>
+              <textarea class="dr-input" id="reason" name="reason" rows="3" placeholder="e.g. Annual Medical Conference"></textarea>
+            </div>
+            <button type="submit" class="dr-btn-gradient" style="margin-top: 0.5rem;">Schedule Leave</button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Leaves Registry -->
+      <main class="dr-layout-main">
+        <div class="dr-panel">
+          <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--text);">Upcoming &amp; Past Leaves</h2>
+          {% if leaves %}
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; color: var(--text);">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                  <th style="padding: 0.75rem 0.5rem;">Start Date</th>
+                  <th style="padding: 0.75rem 0.5rem;">End Date</th>
+                  <th style="padding: 0.75rem 0.5rem;">Reason/Notes</th>
+                  <th style="padding: 0.75rem 0.5rem; text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for l in leaves %}
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem 0.5rem; font-weight: 500;">{{ l.start_date }}</td>
+                    <td style="padding: 0.75rem 0.5rem; font-weight: 500;">{{ l.end_date }}</td>
+                    <td style="padding: 0.75rem 0.5rem; color: var(--text-muted);">{{ l.reason or 'No details specified' }}</td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                      <form method="post" action="{{ url_for('core.delete_doctor_leave', leave_id=l.id) }}" onsubmit="return confirm('Are you sure you want to remove this leave entry?')">
+                        <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.85rem;">Remove</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="dr-hint">No scheduled leaves or vacations found.</p>
+          {% endif %}
+        </div>
+      </main>
+    </div>
+  </div>
+{% endblock %}

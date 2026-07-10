@@ -1,0 +1,82 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Prescription Templates</h1>
+    <p class="dr-page-lead">Save common drug courses and standard dosages. When writing prescriptions, load any template to fill fields instantly.</p>
+
+    <div class="dr-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+      <!-- Add Template Form -->
+      <aside class="dr-layout-side">
+        <div class="dr-panel">
+          <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--text);">New Template</h2>
+          <form method="post" action="{{ url_for('core.doctor_prescription_templates') }}" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="template_name">Template Name</label>
+              <input class="dr-input" id="template_name" name="template_name" required placeholder="e.g. Standard Amoxicillin 7d" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="medicine_name">Medicine Name</label>
+              <input class="dr-input" id="medicine_name" name="medicine_name" required placeholder="e.g. Amoxicillin 500mg" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="dosage">Dosage</label>
+              <input class="dr-input" id="dosage" name="dosage" placeholder="e.g. 1 capsule" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="frequency">Frequency</label>
+              <input class="dr-input" id="frequency" name="frequency" placeholder="e.g. 3 times daily" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="duration_days">Duration (days)</label>
+              <input class="dr-input" id="duration_days" name="duration_days" type="number" min="0" value="7" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="notes">Notes</label>
+              <textarea class="dr-input" id="notes" name="notes" rows="2" placeholder="Take with food..."></textarea>
+            </div>
+            <button type="submit" class="dr-btn-gradient" style="margin-top: 0.5rem;">Save Template</button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Templates Registry -->
+      <main class="dr-layout-main">
+        <div class="dr-panel">
+          <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--text);">Saved Templates</h2>
+          {% if templates %}
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; color: var(--text);">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                  <th style="padding: 0.75rem 0.5rem;">Template Name</th>
+                  <th style="padding: 0.75rem 0.5rem;">Medicine</th>
+                  <th style="padding: 0.75rem 0.5rem;">Directions</th>
+                  <th style="padding: 0.75rem 0.5rem; text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for t in templates %}
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem 0.5rem; font-weight: 600;">{{ t.template_name }}</td>
+                    <td style="padding: 0.75rem 0.5rem; font-weight: 500; color: var(--accent);">{{ t.medicine_name }}</td>
+                    <td style="padding: 0.75rem 0.5rem; color: var(--text-muted);">
+                      {{ t.dosage or '' }} - {{ t.frequency or '' }} 
+                      {% if t.duration_days %}({{ t.duration_days }} days){% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 0.5rem; text-align: right;">
+                      <form method="post" action="{{ url_for('core.delete_prescription_template', template_id=t.id) }}" onsubmit="return confirm('Delete this template?')">
+                        <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.85rem;">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="dr-hint">No prescription templates saved yet.</p>
+          {% endif %}
+        </div>
+      </main>
+    </div>
+  </div>
+{% endblock %}

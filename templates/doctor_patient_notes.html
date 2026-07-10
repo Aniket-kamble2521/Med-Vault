@@ -1,0 +1,59 @@
+{% extends "base_doctor.html" %}
+{% block content %}
+  <div class="dr-shell">
+    <a href="{{ url_for('core.doctor_dashboard') }}" class="dr-back-link">← Dashboard</a>
+    <h1 class="dr-page-title">Patient Progress Notes</h1>
+    <p class="dr-page-lead">Keep secure clinical progress notes and internal observation logs for your patients.</p>
+
+    <div class="dr-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+      <!-- Add Note Form -->
+      <aside class="dr-layout-side">
+        <div class="dr-panel">
+          <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--text);">Add Progress Note</h2>
+          <form method="post" action="{{ url_for('core.doctor_patient_notes_route') }}" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="patient_name">Patient Name</label>
+              {% if patients %}
+                <input class="dr-input" id="patient_name" name="patient_name" list="patient-list" required placeholder="Pick or type patient name" />
+                <datalist id="patient-list">
+                  {% for p in patients %}
+                    <option value="{{ p.full_name }}"></option>
+                  {% endfor %}
+                </datalist>
+              {% else %}
+                <input class="dr-input" id="patient_name" name="patient_name" required placeholder="Patient full name" />
+              {% endif %}
+            </div>
+            <div>
+              <label class="dr-label-full" for="notes">Clinical Note Details</label>
+              <textarea class="dr-input" id="notes" name="notes" rows="6" required placeholder="Enter diagnostic observations, progress, follow-up guidance, or mental health status..."></textarea>
+            </div>
+            <button type="submit" class="dr-btn-gradient" style="margin-top: 0.5rem;">Save Note</button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Notes List -->
+      <main class="dr-layout-main">
+        <div class="dr-panel">
+          <h2 style="margin-top: 0; font-size: 1.15rem; color: var(--text);">Recent Observations Log</h2>
+          {% if notes_list %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              {% for n in notes_list %}
+                <article style="border: 1px solid var(--border); border-radius: 12px; padding: 1rem; background: var(--surface); color: var(--text);">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                    <strong style="color: var(--accent); font-size: 1rem;">{{ n.patient_name }}</strong>
+                    <span style="color: var(--text-muted);">{{ n.created_at }}</span> <!-- Render directly since it's a formatted timestamp or we can parse it -->
+                  </div>
+                  <p style="margin: 0.25rem 0 0; line-height: 1.4; white-space: pre-line;">{{ n.notes }}</p>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="dr-hint">No notes logged yet. Log patient metrics or observations on the left.</p>
+          {% endif %}
+        </div>
+      </main>
+    </div>
+  </div>
+{% endblock %}

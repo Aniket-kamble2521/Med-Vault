@@ -1,47 +1,367 @@
 {% extends "base_doctor.html" %}
 {% block content %}
-  <div class="dr-shell dr-onboard-wrap">
-    <p class="dr-onboard-badge">Doctor setup</p>
-    <div class="dr-panel onboard-step is-active dr-onboard-step" data-step="1">
-      <h1 class="dr-onboard-title">Welcome to MedVault Clinical</h1>
-      <p class="dr-onboard-lead">What matters most in your daily workflow?</p>
-      <div class="dr-onboard-options">
-        <label><input type="radio" name="dq1" value="records" checked /> Verified patient records &amp; history at a glance</label>
-        <label><input type="radio" name="dq1" value="handoff" /> Fast handoffs with care teams</label>
-        <label><input type="radio" name="dq1" value="imaging" /> Clear imaging &amp; lab integration</label>
-        <label><input type="radio" name="dq1" value="all" /> All of these are priorities</label>
-      </div>
-      <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button" style="margin-top: 1rem">Continue</button>
-    </div>
-
-    <div class="dr-panel onboard-step dr-onboard-step" data-step="2">
-      <h1 class="dr-onboard-title">Reports &amp; results</h1>
-      <p class="dr-onboard-lead">How do you prefer to handle incoming reports and results?</p>
-      <div class="dr-onboard-options">
-        <label><input type="radio" name="dq2" value="realtime" checked /> Review as they arrive</label>
-        <label><input type="radio" name="dq2" value="batch" /> Batch review at end of day</label>
-        <label><input type="radio" name="dq2" value="priority" /> Strictly by clinical priority</label>
-        <label><input type="radio" name="dq2" value="mixed" /> Depends on the setting</label>
-      </div>
-      <div class="dr-onboard-actions">
-        <button class="dr-btn-outline onboard-prev" type="button">Back</button>
-        <button class="dr-btn-gradient dr-btn-gradient--inline onboard-next" type="button">Continue</button>
-      </div>
-    </div>
-
-    <div class="dr-panel onboard-step dr-onboard-step" data-step="3">
-      <h1 class="dr-onboard-title">Emergency access</h1>
-      <p class="dr-onboard-lead">When a patient shares an emergency QR, you can open their essential health summary instantly—ideal for ER and urgent consults.</p>
-      <ul class="dr-onboard-bullets">
-        <li>Use <strong>Scan patient emergency QR</strong> from your dashboard to read the same view anyone gets from the QR.</li>
-        <li>QR links expire automatically for privacy.</li>
-      </ul>
-      <form method="post" action="{{ url_for('core.complete_onboarding') }}">
-        <div class="dr-onboard-actions">
-          <button class="dr-btn-outline onboard-prev" type="button">Back</button>
-          <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Enter Doctor Portal</button>
+  <div class="dr-shell dr-shell--narrow">
+    <div class="dr-panel">
+      <!-- Progress Bar Indicator -->
+      <div class="onboard-progress-container" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+          <span>Profile Setup Progress</span>
+          <span id="progress-text">Step 1 of 4: Personal Information</span>
         </div>
+        <div style="width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
+          <div id="progress-bar" style="width: 25%; height: 100%; background: var(--accent); transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Main Form -->
+      <form method="post" action="{{ url_for('core.complete_onboarding') }}" id="onboard-form" onsubmit="return validateForm()">
+        
+        <!-- STEP 1: PERSONAL INFORMATION -->
+        <div class="onboard-step active" id="step-1">
+          <h2 style="margin-top: 0; color: var(--text);">Step 1: Personal Information</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Let's start with your basic personal details so patients and colleagues can recognize you.
+          </p>
+
+          <label class="dr-label-full" for="full_name">Full Name <span style="color: var(--red, #ef4444)">*</span></label>
+          <input class="dr-input" id="full_name" name="full_name" required minlength="2" maxlength="120" value="{{ theme.display_name }}" placeholder="e.g. Dr. Jane Smith" />
+
+          <label class="dr-label-full" for="email" style="margin-top: 1.2rem;">Email Address <span style="color: var(--text-muted); font-weight: normal;">(Prefilled)</span></label>
+          <input class="dr-input" id="email" name="email" type="email" value="{{ theme.username }}@medvault.com" placeholder="doctor@example.com" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="gender">Gender</label>
+              <select class="dr-input" id="gender" name="gender">
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+                <option value="Prefer Not to Say">Prefer Not to Say</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="dob">Date of Birth</label>
+              <input class="dr-input" id="dob" name="dob" type="date" />
+            </div>
+          </div>
+
+          <label class="dr-label-full" for="phone" style="margin-top: 1.2rem;">Phone Number <span style="color: var(--red, #ef4444)">*</span></label>
+          <input class="dr-input" id="phone" name="phone" type="tel" required placeholder="e.g. +1 555-0199" />
+
+          <label class="dr-label-full" for="profile_photo" style="margin-top: 1.2rem;">Profile Photo URL <span style="color: var(--text-muted); font-weight: normal;">(Optional)</span></label>
+          <input class="dr-input" id="profile_photo" name="profile_photo" type="url" placeholder="https://example.com/photo.jpg" />
+
+          <label class="dr-label-full" for="address" style="margin-top: 1.2rem;">Clinic/Hospital Address</label>
+          <input class="dr-input" id="address" name="address" placeholder="e.g. 100 Medical Plaza, Suite 300" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="city">City</label>
+              <input class="dr-input" id="city" name="city" placeholder="City" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="state">State</label>
+              <input class="dr-input" id="state" name="state" placeholder="State" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="country">Country</label>
+              <input class="dr-input" id="country" name="country" placeholder="Country" />
+            </div>
+          </div>
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: flex-end;">
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(2)">Next Step &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: PROFESSIONAL INFORMATION -->
+        <div class="onboard-step" id="step-2" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 2: Professional Information</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Provide your clinical details and qualifications to display on your credentials sheet.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="specialty">Medical Specialty <span style="color: var(--red, #ef4444)">*</span></label>
+              <select class="dr-input" id="specialty" name="specialty" required onchange="handleSpecialtyChange(this.value)">
+                <option value="" disabled selected>Select specialty...</option>
+                <option value="Cardiologist">Cardiology</option>
+                <option value="Pediatrician">Pediatrics</option>
+                <option value="Neurologist">Neurology</option>
+                <option value="Orthopedic Surgeon">Orthopedics</option>
+                <option value="Dermatologist">Dermatology</option>
+                <option value="General Practitioner">General Practice</option>
+                <option value="Internal Medicine">Internal Medicine</option>
+                <option value="Psychiatrist">Psychiatry</option>
+                <option value="Other">Other (Specify below)</option>
+              </select>
+            </div>
+            <div>
+              <label class="dr-label-full" for="sub_specialty">Sub-specialty <span style="color: var(--text-muted); font-weight: normal;">(Optional)</span></label>
+              <input class="dr-input" id="sub_specialty" name="sub_specialty" placeholder="e.g. Interventional Cardiology" />
+            </div>
+          </div>
+
+          <!-- Custom Specialty field (shown only if 'Other' is selected) -->
+          <div id="custom-specialty-container" style="display: none; margin-top: 1.2rem;">
+            <label class="dr-label-full" for="custom_specialty">Specify Other Specialty</label>
+            <input class="dr-input" id="custom_specialty" placeholder="Enter specialty name" oninput="updateCustomSpecialtyVal(this.value)" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="registration_number">Registration Number <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="registration_number" name="registration_number" required placeholder="e.g. MC-98210" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="medical_council">Medical Council <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="medical_council" name="medical_council" required placeholder="e.g. State Medical Council" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="years_experience">Years of Experience <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="years_experience" name="years_experience" type="number" min="0" required placeholder="e.g. 12" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="highest_qualification">Highest Qualification <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="highest_qualification" name="highest_qualification" required placeholder="e.g. MD, MBBS" />
+            </div>
+          </div>
+
+          <label class="dr-label-full" for="college_university" style="margin-top: 1.2rem;">Medical College / University</label>
+          <input class="dr-input" id="college_university" name="college_university" placeholder="e.g. Harvard Medical School" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="hospital_clinic">Hospital / Clinic Name</label>
+              <input class="dr-input" id="hospital_clinic" name="hospital_clinic" placeholder="e.g. St. Jude Hospital" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="position">Position / Designation</label>
+              <input class="dr-input" id="position" name="position" placeholder="e.g. Senior Consultant" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.2rem;">
+            <div>
+              <label class="dr-label-full" for="consultation_fee">Consultation Fee ($) <span style="color: var(--red, #ef4444)">*</span></label>
+              <input class="dr-input" id="consultation_fee" name="consultation_fee" type="number" min="0" step="0.01" required placeholder="e.g. 150.00" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="languages_spoken">Languages Spoken</label>
+              <input class="dr-input" id="languages_spoken" name="languages_spoken" placeholder="e.g. English, Spanish" />
+            </div>
+          </div>
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(1)">&larr; Back</button>
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(3)">Next Step &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: AVAILABILITY -->
+        <div class="onboard-step" id="step-3" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 3: Availability &amp; Practice Hours</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Configure when patients can book appointments with you.
+          </p>
+
+          <label class="dr-label-full" style="margin-bottom: 0.5rem;">Working Days</label>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.2rem;">
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Monday" checked /> Monday
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Tuesday" checked /> Tuesday
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Wednesday" checked /> Wednesday
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Thursday" checked /> Thursday
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Friday" checked /> Friday
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Saturday" /> Saturday
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; color: var(--text); cursor: pointer;">
+              <input type="checkbox" name="working_days" value="Sunday" /> Sunday
+            </label>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label class="dr-label-full" for="consultation_hours">Consultation Hours</label>
+              <input class="dr-input" id="consultation_hours" name="consultation_hours" placeholder="e.g. 09:00 AM - 05:00 PM" value="09:00 AM - 05:00 PM" />
+            </div>
+            <div>
+              <label class="dr-label-full" for="timezone">Time Zone</label>
+              <select class="dr-input" id="timezone" name="timezone">
+                <option value="UTC">UTC (GMT)</option>
+                <option value="EST">EST (Eastern Standard Time)</option>
+                <option value="CST">CST (Central Standard Time)</option>
+                <option value="MST">MST (Mountain Standard Time)</option>
+                <option value="PST">PST (Pacific Standard Time)</option>
+                <option value="IST" selected>IST (Indian Standard Time)</option>
+                <option value="GMT">GMT (Greenwich Mean Time)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+            <div>
+              <label class="dr-label-full" style="margin-bottom: 0.5rem;">Online Consultations</label>
+              <div style="display: flex; gap: 1rem;">
+                <label style="color: var(--text); cursor: pointer;">
+                  <input type="radio" name="online_consultation" value="yes" checked /> Yes
+                </label>
+                <label style="color: var(--text); cursor: pointer;">
+                  <input type="radio" name="online_consultation" value="no" /> No
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="dr-label-full" style="margin-bottom: 0.5rem;">Offline Consultations</label>
+              <div style="display: flex; gap: 1rem;">
+                <label style="color: var(--text); cursor: pointer;">
+                  <input type="radio" name="offline_consultation" value="yes" checked /> Yes
+                </label>
+                <label style="color: var(--text); cursor: pointer;">
+                  <input type="radio" name="offline_consultation" value="no" /> No
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="dr-form-actions" style="margin-top: 2rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(2)">&larr; Back</button>
+            <button type="button" class="dr-btn-gradient dr-btn-gradient--inline" onclick="nextStep(4)">Next Step &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: ADDITIONAL DETAILS -->
+        <div class="onboard-step" id="step-4" style="display: none;">
+          <h2 style="margin-top: 0; color: var(--text);">Step 4: Additional Details &amp; Bio</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Almost done! Share a brief bio and achievements to show to patients.
+          </p>
+
+          <label class="dr-label-full" for="bio">Short Professional Bio</label>
+          <textarea class="dr-input" id="bio" name="bio" rows="4" maxlength="500" placeholder="Briefly introduce yourself, clinical approach, and background..."></textarea>
+          <p class="dr-hint" style="margin-top: 0.25rem;">Max 500 characters.</p>
+
+          <label class="dr-label-full" for="expertise" style="margin-top: 1.2rem;">Areas of Expertise</label>
+          <input class="dr-input" id="expertise" name="expertise" placeholder="e.g. Heart Failure, Cardiac Imaging, Valvular Disease" />
+
+          <label class="dr-label-full" for="certifications" style="margin-top: 1.2rem;">Certifications <span style="color: var(--text-muted); font-weight: normal;">(Optional)</span></label>
+          <input class="dr-input" id="certifications" name="certifications" placeholder="e.g. FACC, Board Certified Cardiologist" />
+
+          <label class="dr-label-full" for="awards" style="margin-top: 1.2rem;">Awards &amp; Recognitions <span style="color: var(--text-muted); font-weight: normal;">(Optional)</span></label>
+          <input class="dr-input" id="awards" name="awards" placeholder="e.g. Distinguished Service Award 2024" />
+
+          <div class="dr-form-actions" style="margin-top: 2.5rem; justify-content: space-between;">
+            <button type="button" class="dr-btn-outline" onclick="prevStep(3)">&larr; Back</button>
+            <button type="submit" class="dr-btn-gradient dr-btn-gradient--inline">Complete Setup &amp; Enter Portal</button>
+          </div>
+        </div>
+
       </form>
     </div>
   </div>
+
+  <!-- Wizard JavaScript Logic -->
+  <script>
+    let currentActiveStep = 1;
+
+    function nextStep(step) {
+      // Simple validation for required fields in the current step
+      const container = document.getElementById('step-' + (step - 1));
+      const inputs = container.querySelectorAll('[required]');
+      let valid = true;
+      inputs.forEach(input => {
+        if (!input.checkValidity()) {
+          input.reportValidity();
+          valid = false;
+        }
+      });
+
+      if (!valid) return;
+
+      // Hide all steps
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('step-' + i).style.display = 'none';
+      }
+
+      // Show target step
+      document.getElementById('step-' + step).style.display = 'block';
+      currentActiveStep = step;
+
+      // Update progress bar
+      const pct = step * 25;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      
+      const stepNames = {
+        1: "Personal Information",
+        2: "Professional Information",
+        3: "Availability",
+        4: "Additional Details"
+      };
+      document.getElementById('progress-text').innerText = "Step " + step + " of 4: " + stepNames[step];
+    }
+
+    function prevStep(step) {
+      // Hide all steps
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('step-' + i).style.display = 'none';
+      }
+
+      // Show target step
+      document.getElementById('step-' + step).style.display = 'block';
+      currentActiveStep = step;
+
+      // Update progress bar
+      const pct = step * 25;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      
+      const stepNames = {
+        1: "Personal Information",
+        2: "Professional Information",
+        3: "Availability",
+        4: "Additional Details"
+      };
+      document.getElementById('progress-text').innerText = "Step " + step + " of 4: " + stepNames[step];
+    }
+
+    function handleSpecialtyChange(val) {
+      const container = document.getElementById('custom-specialty-container');
+      if (val === 'Other') {
+        container.style.display = 'block';
+        document.getElementById('custom_specialty').setAttribute('required', 'required');
+      } else {
+        container.style.display = 'none';
+        document.getElementById('custom_specialty').removeAttribute('required');
+      }
+    }
+
+    function validateForm() {
+      // If Specialty is 'Other', swap the select value or submit with custom specialty value
+      const select = document.getElementById('specialty');
+      if (select.value === 'Other') {
+        const custom = document.getElementById('custom_specialty').value.trim();
+        if (!custom) {
+          alert('Please specify your other specialty.');
+          return false;
+        }
+        // Inject a hidden input or change option value to custom
+        const opt = select.querySelector('option[value="Other"]');
+        opt.value = custom;
+      }
+      return true;
+    }
+  </script>
 {% endblock %}

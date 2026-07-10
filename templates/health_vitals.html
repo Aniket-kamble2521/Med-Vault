@@ -1,0 +1,983 @@
+{% extends "base_patient.html" %}
+{% block content %}
+  <!-- Premium Styles for Glassmorphic Dashboard -->
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 2px solid #fff;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    
+    .vitals-header-gradient {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .vitals-header-gradient::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      pointer-events: none;
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    }
+    
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    
+    .circular-progress {
+      position: relative;
+      width: 70px;
+      height: 70px;
+    }
+    .circular-progress svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .circular-progress circle {
+      fill: none;
+      stroke-width: 3.5;
+    }
+    .circular-progress .bg-circle {
+      stroke: #f1f5f9;
+    }
+    .circular-progress .val-circle {
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s ease;
+    }
+    .circular-progress .center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    
+    /* Float action button */
+    .fab-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+      cursor: pointer;
+      z-index: 100;
+      transition: transform 0.2s ease, background-color 0.2s;
+    }
+    .fab-btn:hover {
+      transform: scale(1.1);
+      background: var(--accent-dark);
+    }
+    
+    .insight-pill {
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .insight-pill.high {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      color: #991b1b;
+    }
+    .insight-pill.medium {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+    .insight-pill.info {
+      background: #f0fdf4;
+      border-left: 4px solid #10b981;
+      color: #166534;
+    }
+    
+    .summary-box {
+      border-right: 1px solid #e2e8f0;
+      padding: 0 1.25rem;
+    }
+    .summary-box:last-child {
+      border-right: none;
+    }
+    @media (max-width: 768px) {
+      .summary-box {
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1rem 0;
+      }
+      .summary-box:last-child {
+        border-bottom: none;
+      }
+    }
+
+    /* Premium Modal styling specifically for Vitals */
+    .vitals-modal-premium {
+      background: rgba(0, 0, 0, 0.4) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    
+    .vitals-modal-premium.is-active {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    
+    .vitals-modal-premium .vitals-modal-content {
+      background: color-mix(in srgb, var(--surface) 95%, transparent);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 600px;
+      max-height: calc(100vh - 3rem);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      transform: scale(0.95) translateY(15px);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .vitals-modal-premium.is-active .vitals-modal-content {
+      transform: scale(1) translateY(0);
+    }
+
+    .vitals-modal-premium .vitals-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    
+    .vitals-modal-premium .vitals-modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .vitals-modal-premium .vitals-modal-close {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 2.25rem;
+      height: 2.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+      padding: 0;
+      line-height: 1;
+    }
+    
+    .vitals-modal-premium .vitals-modal-close:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: var(--text);
+    }
+    
+    [data-theme="dark"] .vitals-modal-premium .vitals-modal-close {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    [data-theme="dark"] .vitals-modal-premium .vitals-modal-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .vitals-modal-premium .vitals-modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex-grow: 1;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .vitals-modal-premium .vitals-modal-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .vitals-modal-premium .vitals-modal-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .vitals-modal-premium .vitals-modal-body::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    .vitals-modal-premium .vitals-modal-body::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .vitals-modal-premium .vitals-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: color-mix(in srgb, var(--surface) 98%, transparent);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .vitals-btn-cancel {
+      border: 1px solid var(--border) !important;
+      background: transparent !important;
+      color: var(--text) !important;
+      padding: 0.65rem 1.5rem !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .vitals-btn-cancel:hover {
+      background: rgba(0, 0, 0, 0.05) !important;
+    }
+    [data-theme="dark"] .vitals-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Scroll Lock Styles */
+    body.modal-open {
+      overflow: hidden !important;
+      position: fixed !important;
+      left: 0 !important;
+      width: 100% !important;
+    }
+
+    @media (max-width: 576px) {
+      .vitals-modal-premium {
+        padding: 0.5rem;
+      }
+      .vitals-modal-premium .vitals-modal-content {
+        max-height: calc(100vh - 1rem);
+        border-radius: 12px;
+      }
+      .vitals-modal-premium .vitals-modal-body {
+        padding: 1rem;
+      }
+      .vitals-modal-premium .vitals-modal-header {
+        padding: 1rem;
+      }
+      .vitals-modal-premium .vitals-modal-footer {
+        padding: 1rem;
+      }
+    }
+  </style>
+
+  <div class="pd-wrap">
+    <!-- Welcome Header Card -->
+    <div class="vitals-header-gradient">
+      <h1 style="margin: 0 0 0.5rem 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.025em;">Your Wellness Command Center</h1>
+      <p style="margin: 0; font-size: 1.05rem; opacity: 0.9; max-width: 600px; line-height: 1.5;">
+        Monitor continuous logs, examine weekly analysis patterns, and explore real-time diagnostic AI summary suggestions.
+      </p>
+    </div>
+
+    <!-- Today's Health Check Reminder / Summary -->
+    {% if not logged_today %}
+      <div class="glass-card" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-color: #10b981; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 style="margin: 0; color: #065f46; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🩺</span> Today's Health Check
+          </h3>
+          <p style="margin: 0.25rem 0 0 0; color: #047857; font-size: 0.9rem;">Add today's health metrics to populate trend graphs and maintain optimal score metrics.</p>
+        </div>
+        <button class="pd-btn-primary" onclick="showVitalsModal()" style="background: #10b981; border: none;">Log Today's Vitals</button>
+      </div>
+    {% else %}
+      {% set latest = vitals[0] %}
+      <div class="glass-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-color: #3b82f6; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h3 style="margin: 0; color: #1e40af; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+              <span>✅</span> Today's Health Vitals Summary
+            </h3>
+            <p style="margin: 0.25rem 0 0 0; color: #2563eb; font-size: 0.9rem;">Vitals successfully logged for today. Keep up the good work!</p>
+          </div>
+          <button class="pd-btn-primary" onclick="showVitalsModalForEdit({
+            id: '{{ latest.id }}',
+            logged_at: '{{ latest.logged_at }}',
+            bp_systolic: '{{ latest.bp_systolic or "" }}',
+            bp_diastolic: '{{ latest.bp_diastolic or "" }}',
+            sugar: '{{ latest.sugar or "" }}',
+            heart_rate: '{{ latest.heart_rate or "" }}',
+            spo2: '{{ latest.spo2 or "" }}',
+            temperature: '{{ latest.temperature or "" }}',
+            bmi: '{{ latest.bmi or "" }}',
+            cholesterol: '{{ latest.cholesterol or "" }}',
+            water_intake: '{{ latest.water_intake or "" }}',
+            steps: '{{ latest.steps or "" }}',
+            sleep_hours: '{{ latest.sleep_hours or "" }}',
+            notes: '{{ latest.symptoms or "" }}'
+          })" style="background: #3b82f6; border: none;">Edit Today's Vitals</button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; background: rgba(255, 255, 255, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2);">
+          <div style="text-align: center;">
+            <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block;">Blood Pressure</span>
+            <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.25rem;">{% if latest.bp_systolic and latest.bp_diastolic %}{{ latest.bp_systolic }}/{{ latest.bp_diastolic }} mmHg{% else %}N/A{% endif %}</strong>
+          </div>
+          <div style="text-align: center; border-left: 1px solid rgba(0,0,0,0.08);">
+            <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block;">Blood Sugar</span>
+            <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.25rem;">{% if latest.sugar %}{{ latest.sugar }} mg/dL{% else %}N/A{% endif %}</strong>
+          </div>
+          <div style="text-align: center; border-left: 1px solid rgba(0,0,0,0.08);">
+            <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block;">Heart Rate</span>
+            <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.25rem;">{% if latest.heart_rate %}{{ latest.heart_rate }} bpm{% else %}N/A{% endif %}</strong>
+          </div>
+          <div style="text-align: center; border-left: 1px solid rgba(0,0,0,0.08);">
+            <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block;">SpO₂</span>
+            <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.25rem;">{% if latest.spo2 %}{{ latest.spo2 }}%{% else %}N/A{% endif %}</strong>
+          </div>
+          <div style="text-align: center; border-left: 1px solid rgba(0,0,0,0.08);">
+            <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block;">Temperature</span>
+            <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.25rem;">{% if latest.temperature %}{{ latest.temperature }} °C{% else %}N/A{% endif %}</strong>
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem; text-align: right; font-size: 0.75rem; color: #6b7280;">
+          Last Updated: <strong>{{ latest.date_label }}</strong>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Latest Readings Grid -->
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 1rem;">Latest Recorded Parameters</h2>
+    {% if vitals %}
+      {% set latest = vitals[0] %}
+      <div class="metric-grid">
+        <!-- BP -->
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Blood Pressure</span>
+            <strong style="font-size: 1.4rem; display: block; margin-top: 0.25rem; color: var(--text);">
+              {% if latest.bp_systolic and latest.bp_diastolic %}{{ latest.bp_systolic }}/{{ latest.bp_diastolic }}{% else %}N/A{% endif %}
+            </strong>
+            <span style="font-size: 0.75rem; color: #3b82f6; font-weight: 600;">mmHg</span>
+          </div>
+          <div class="circular-progress">
+            <svg>
+              <circle class="bg-circle" cx="35" cy="35" r="30"></circle>
+              <circle class="val-circle" cx="35" cy="35" r="30" stroke="#3b82f6" stroke-dasharray="188.4" stroke-dashoffset="{% if latest.bp_systolic %}{{ 188.4 - (latest.bp_systolic / 200 * 188.4) }}{% else %}188.4{% endif %}"></circle>
+            </svg>
+            <div class="center-text">BP</div>
+          </div>
+        </div>
+
+        <!-- Sugar -->
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Blood Sugar</span>
+            <strong style="font-size: 1.4rem; display: block; margin-top: 0.25rem; color: var(--text);">
+              {% if latest.sugar %}{{ latest.sugar }}{% else %}N/A{% endif %}
+            </strong>
+            <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600;">mg/dL</span>
+          </div>
+          <div class="circular-progress">
+            <svg>
+              <circle class="bg-circle" cx="35" cy="35" r="30"></circle>
+              <circle class="val-circle" cx="35" cy="35" r="30" stroke="#f59e0b" stroke-dasharray="188.4" stroke-dashoffset="{% if latest.sugar %}{{ 188.4 - (latest.sugar / 300 * 188.4) }}{% else %}188.4{% endif %}"></circle>
+            </svg>
+            <div class="center-text">SUG</div>
+          </div>
+        </div>
+
+        <!-- HR -->
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Heart Rate</span>
+            <strong style="font-size: 1.4rem; display: block; margin-top: 0.25rem; color: var(--text);">
+              {% if latest.heart_rate %}{{ latest.heart_rate }}{% else %}N/A{% endif %}
+            </strong>
+            <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">bpm</span>
+          </div>
+          <div class="circular-progress">
+            <svg>
+              <circle class="bg-circle" cx="35" cy="35" r="30"></circle>
+              <circle class="val-circle" cx="35" cy="35" r="30" stroke="#10b981" stroke-dasharray="188.4" stroke-dashoffset="{% if latest.heart_rate %}{{ 188.4 - (latest.heart_rate / 180 * 188.4) }}{% else %}188.4{% endif %}"></circle>
+            </svg>
+            <div class="center-text">HR</div>
+          </div>
+        </div>
+
+        <!-- SpO2 -->
+        <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Oxygen SpO₂</span>
+            <strong style="font-size: 1.4rem; display: block; margin-top: 0.25rem; color: var(--text);">
+              {% if latest.spo2 %}{{ latest.spo2 }}%{% else %}N/A{% endif %}
+            </strong>
+            <span style="font-size: 0.75rem; color: #ec4899; font-weight: 600;">saturation</span>
+          </div>
+          <div class="circular-progress">
+            <svg>
+              <circle class="bg-circle" cx="35" cy="35" r="30"></circle>
+              <circle class="val-circle" cx="35" cy="35" r="30" stroke="#ec4899" stroke-dasharray="188.4" stroke-dashoffset="{% if latest.spo2 %}{{ 188.4 - (latest.spo2 / 100 * 188.4) }}{% else %}188.4{% endif %}"></circle>
+            </svg>
+            <div class="center-text">O₂</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Highlight & Summaries Panel -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+      <!-- Weekly & Monthly Summaries -->
+      <section class="glass-card">
+        <h3 class="dr-side-title" style="margin-bottom: 1.25rem;">Analytics Summaries</h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem;">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Weekly Highest BP</span>
+              <strong style="font-size: 1.1rem; display: block; color: var(--text);">{{ analytics.weekly.bp_max }}</strong>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Weekly Lowest BP</span>
+              <strong style="font-size: 1.1rem; display: block; color: var(--text);">{{ analytics.weekly.bp_min }}</strong>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem;">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Monthly High Sugar</span>
+              <strong style="font-size: 1.1rem; display: block; color: var(--text);">{{ analytics.monthly.sugar_max }} mg/dL</strong>
+            </div>
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Monthly Low Sugar</span>
+              <strong style="font-size: 1.1rem; display: block; color: var(--text);">{{ analytics.monthly.sugar_min }} mg/dL</strong>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+            <div>
+              <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Sleep Avg</span>
+              <strong style="font-size: 1rem; display: block; color: var(--text);">{{ analytics.monthly.sleep_avg }} hrs</strong>
+            </div>
+            <div>
+              <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Water Avg</span>
+              <strong style="font-size: 1rem; display: block; color: var(--text);">{{ analytics.monthly.water_avg }} L</strong>
+            </div>
+            <div>
+              <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">BMI Avg</span>
+              <strong style="font-size: 1rem; display: block; color: var(--text);">{{ analytics.monthly.bmi_avg }}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vitals Highlight Highlights -->
+      <section class="glass-card">
+        <h3 class="dr-side-title" style="margin-bottom: 1.25rem;">Analytics Highlights</h3>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #f1f5f9;">
+            <span style="color: var(--text-muted);">🌟 Best Health Balance Day:</span>
+            <strong>{{ analytics.highlights.best_day }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #f1f5f9;">
+            <span style="color: var(--text-muted);">⚠️ Highest Risk Day:</span>
+            <strong style="color: #ef4444;">{{ analytics.highlights.highest_risk_day }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #f1f5f9;">
+            <span style="color: var(--text-muted);">📉 Lowest Blood Pressure Day:</span>
+            <strong>{{ analytics.highlights.lowest_bp_day }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #f1f5f9;">
+            <span style="color: var(--text-muted);">🍬 Highest Blood Sugar Day:</span>
+            <strong>{{ analytics.highlights.highest_sugar_day }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; align-items: center;">
+            <span style="color: var(--text-muted);">📈 Overall Health Trend:</span>
+            <span style="background: {% if analytics.highlights.trend == 'Improving' %}#ecfdf5{% elif analytics.highlights.trend == 'Stable' %}#fffbeb{% else %}#fef2f2{% endif %}; color: {% if analytics.highlights.trend == 'Improving' %}#10b981{% elif analytics.highlights.trend == 'Stable' %}#f59e0b{% else %}#ef4444{% endif %}; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.8rem;">
+              {{ analytics.highlights.trend }}
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- AI Insights Section -->
+    <section class="glass-card" style="margin-bottom: 2rem;">
+      <h3 class="dr-side-title" style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🤖</span> AI Health Insights
+      </h3>
+      <div>
+        {% for ins in ai_insights %}
+          <div class="insight-pill {{ ins.priority }}">
+            <span style="font-size: 1.5rem;">{{ ins.icon }}</span>
+            <div>
+              <strong style="font-size: 0.95rem; display: block; margin-bottom: 0.15rem;">{{ ins.title }}</strong>
+              <p style="margin: 0; font-size: 0.85rem; opacity: 0.95;">{{ ins.desc }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Health Trend Graphs -->
+    {% if vitals %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="glass-card">
+          <h3 class="dr-side-title" style="margin-bottom: 1rem;">Blood Pressure & SpO₂</h3>
+          <div style="position: relative; height: 250px;">
+            <canvas id="bpSpo2Chart"></canvas>
+          </div>
+        </div>
+        <div class="glass-card">
+          <h3 class="dr-side-title" style="margin-bottom: 1rem;">Blood Sugar & Heart Rate</h3>
+          <div style="position: relative; height: 250px;">
+            <canvas id="sugarHrChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+      <script>
+        (function() {
+          const rawVitals = {{ vitals | tojson }};
+          const vitals = [...rawVitals].reverse();
+          
+          const labels = vitals.map(v => {
+            if (v.logged_at) {
+              return v.logged_at.slice(5, 10) + ' ' + v.logged_at.slice(11, 16);
+            }
+            return 'N/A';
+          });
+          
+          const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: { x: { grid: { display: false } } }
+          };
+
+          new Chart(document.getElementById("bpSpo2Chart"), {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                { label: 'Systolic BP', data: vitals.map(v => v.bp_systolic || null), borderColor: '#ef4444', tension: 0.2, spanGaps: true },
+                { label: 'Diastolic BP', data: vitals.map(v => v.bp_diastolic || null), borderColor: '#3b82f6', tension: 0.2, spanGaps: true },
+                { label: 'SpO₂ (%)', data: vitals.map(v => v.spo2 || null), borderColor: '#ec4899', tension: 0.2, spanGaps: true }
+              ]
+            },
+            options: chartOptions
+          });
+
+          new Chart(document.getElementById("sugarHrChart"), {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                { label: 'Blood Sugar', data: vitals.map(v => v.sugar || null), borderColor: '#f59e0b', tension: 0.2, spanGaps: true },
+                { label: 'Heart Rate', data: vitals.map(v => v.heart_rate || null), borderColor: '#10b981', tension: 0.2, spanGaps: true }
+              ]
+            },
+            options: chartOptions
+          });
+        })();
+      </script>
+    {% endif %}
+
+    <!-- History Timeline Cards -->
+    <section class="glass-card">
+      <h3 class="dr-side-title" style="margin-bottom: 1.25rem;">Vitals Log Timeline</h3>
+      {% if vitals %}
+        <div style="display: flex; flex-direction: column; gap: 1rem; position: relative; padding-left: 1.5rem; border-left: 2px solid #e2e8f0;">
+          {% for v in vitals %}
+            <div style="position: relative;">
+              <!-- Marker dot -->
+              <div style="position: absolute; left: -1.95rem; top: 0.25rem; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid white; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);"></div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">{{ v.date_label }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Logged</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; font-size: 0.85rem; color: var(--text); background: #f8fafc; border-radius: 8px; padding: 0.75rem; border: 1px solid #f1f5f9;">
+                <div><strong>BP:</strong> {% if v.bp_systolic and v.bp_diastolic %}{{ v.bp_systolic }}/{{ v.bp_diastolic }}{% else %}-{% endif %}</div>
+                <div><strong>Sugar:</strong> {{ v.sugar or '-' }}</div>
+                <div><strong>HR:</strong> {{ v.heart_rate or '-' }}</div>
+                <div><strong>SpO₂:</strong> {{ v.spo2 or '-' }}%</div>
+                <div><strong>Sleep:</strong> {{ v.sleep_hours or '-' }}h</div>
+                <div><strong>Water:</strong> {{ v.water_intake or '-' }}L</div>
+                <div><strong>Steps:</strong> {{ v.steps or '-' }}</div>
+              </div>
+              {% if v.symptoms %}
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 0.25rem; padding-left: 0.75rem;">
+                  "{{ v.symptoms }}"
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="pd-empty-state">
+          <div class="pd-empty-state-icon">🩺</div>
+          <div class="pd-empty-state-title">No Vitals Recorded</div>
+          <p class="pd-empty-state-desc">You haven't recorded any health readings yet. Click below to add your first vitals record.</p>
+          <button class="pd-btn-primary" onclick="showVitalsModal()">Log Vitals</button>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Float Action Button -->
+  <button class="fab-btn" onclick="showVitalsModal()" title="Add Vitals Log" aria-label="Add vitals readings">
+    ➕
+  </button>
+
+  <!-- Modal Log Form -->
+  <div id="vitalsModal" class="pd-modal vitals-modal-premium">
+    <div class="vitals-modal-content">
+      <div class="vitals-modal-header">
+        <h3 id="modalTitle">Log Today's Vitals</h3>
+        <button type="button" class="vitals-modal-close" onclick="hideVitalsModal()">&times;</button>
+      </div>
+      <div class="vitals-modal-body">
+        <form id="vitalsForm" class="dr-p-form">
+          <input type="hidden" name="update" id="modalUpdateFlag" value="false" />
+          
+          <div style="margin-bottom: 1rem;">
+            <label class="dr-hint">Date &amp; Time</label>
+            <input class="dr-input" type="datetime-local" name="logged_at" id="modalLoggedAt" required />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label class="dr-hint">Systolic BP (mmHg)</label>
+              <input class="dr-input" type="number" name="bp_systolic" id="modalBpSys" placeholder="e.g. 120" min="50" max="250" required />
+            </div>
+            <div>
+              <label class="dr-hint">Diastolic BP (mmHg)</label>
+              <input class="dr-input" type="number" name="bp_diastolic" id="modalBpDia" placeholder="e.g. 80" min="30" max="150" required />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label class="dr-hint">Blood Sugar (mg/dL)</label>
+              <input class="dr-input" type="number" step="0.1" name="sugar" id="modalSugar" placeholder="e.g. 95" min="20" max="600" required />
+            </div>
+            <div>
+              <label class="dr-hint">Heart Rate (bpm)</label>
+              <input class="dr-input" type="number" name="heart_rate" id="modalHeartRate" placeholder="e.g. 72" min="30" max="220" required />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label class="dr-hint">Oxygen Saturation (SpO₂ %)</label>
+              <input class="dr-input" type="number" name="spo2" id="modalSpo2" placeholder="e.g. 98" min="50" max="100" required />
+            </div>
+            <div>
+              <label class="dr-hint">Body Temp (°C)</label>
+              <input class="dr-input" type="number" step="0.1" name="temperature" id="modalTemp" placeholder="e.g. 36.6" min="30" max="45" required />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label class="dr-hint">BMI</label>
+              <input class="dr-input" type="number" step="0.1" name="bmi" id="modalBmi" placeholder="e.g. 22.4" />
+            </div>
+            <div>
+              <label class="dr-hint">Cholesterol (mg/dL) (Optional)</label>
+              <input class="dr-input" type="number" step="0.1" name="cholesterol" id="modalChol" placeholder="e.g. 180" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label class="dr-hint">Water Intake (L)</label>
+              <input class="dr-input" type="number" step="0.1" name="water_intake" id="modalWater" placeholder="e.g. 2.5" />
+            </div>
+            <div>
+              <label class="dr-hint">Daily Steps</label>
+              <input class="dr-input" type="number" name="steps" id="modalSteps" placeholder="e.g. 8500" />
+            </div>
+            <div>
+              <label class="dr-hint">Sleep Hours</label>
+              <input class="dr-input" type="number" step="0.1" name="sleep_hours" id="modalSleep" placeholder="e.g. 7.5" />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.5rem;">
+            <label class="dr-hint">Notes / Symptoms (Optional)</label>
+            <textarea class="dr-input" name="notes" id="modalNotes" rows="2" placeholder="Notes about symptoms, diet, or feeling..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="vitals-modal-footer">
+        <button type="button" class="vitals-btn-cancel" onclick="hideVitalsModal()">Cancel</button>
+        <button type="submit" form="vitalsForm" class="pd-btn-primary" id="btnSaveVitals">Save Today's Vitals</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Custom Toast Helper
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;';
+        document.body.appendChild(container);
+      }
+      
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-weight: 600;
+        font-size: 0.9rem;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        transform: translateY(-20px);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: inherit;
+      `;
+      toast.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      }, 10);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    let scrollPosition = 0;
+
+    function lockScroll() {
+      // Get current scroll position
+      scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Prevent layout shift by adding padding
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      
+      document.body.style.top = `-${scrollPosition}px`;
+      document.body.classList.add('modal-open');
+    }
+
+    function unlockScroll() {
+      if (!document.body.classList.contains('modal-open')) return;
+      
+      document.body.classList.remove('modal-open');
+      document.body.style.paddingRight = '';
+      document.body.style.top = '';
+      
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'auto'
+      });
+    }
+
+    function showVitalsModal() {
+      // Clear fields and set default date
+      document.getElementById('modalTitle').textContent = "Log Today's Vitals";
+      document.getElementById('modalUpdateFlag').value = "false";
+      
+      const fields = ['modalBpSys', 'modalBpDia', 'modalSugar', 'modalHeartRate', 'modalSpo2', 'modalTemp', 'modalBmi', 'modalChol', 'modalWater', 'modalSteps', 'modalSleep', 'modalNotes'];
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el) el.value = '';
+      });
+
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('modalLoggedAt').value = now.toISOString().slice(0, 16);
+      
+      const modal = document.getElementById('vitalsModal');
+      modal.classList.add('is-active');
+      lockScroll();
+      
+      // Scroll modal body to top when opened
+      const modalBody = modal.querySelector('.vitals-modal-body');
+      if (modalBody) modalBody.scrollTop = 0;
+    }
+    
+    function showVitalsModalForEdit(data) {
+      document.getElementById('modalTitle').textContent = "Edit Today's Vitals";
+      document.getElementById('modalUpdateFlag').value = "true";
+      
+      document.getElementById('modalLoggedAt').value = data.logged_at ? data.logged_at.slice(0, 16) : '';
+      document.getElementById('modalBpSys').value = data.bp_systolic || '';
+      document.getElementById('modalBpDia').value = data.bp_diastolic || '';
+      document.getElementById('modalSugar').value = data.sugar || '';
+      document.getElementById('modalHeartRate').value = data.heart_rate || '';
+      document.getElementById('modalSpo2').value = data.spo2 || '';
+      document.getElementById('modalTemp').value = data.temperature || '';
+      document.getElementById('modalBmi').value = data.bmi || '';
+      document.getElementById('modalChol').value = data.cholesterol || '';
+      document.getElementById('modalWater').value = data.water_intake || '';
+      document.getElementById('modalSteps').value = data.steps || '';
+      document.getElementById('modalSleep').value = data.sleep_hours || '';
+      document.getElementById('modalNotes').value = data.notes || '';
+      
+      const modal = document.getElementById('vitalsModal');
+      modal.classList.add('is-active');
+      lockScroll();
+      
+      // Scroll modal body to top when opened
+      const modalBody = modal.querySelector('.vitals-modal-body');
+      if (modalBody) modalBody.scrollTop = 0;
+    }
+    
+    function hideVitalsModal() {
+      const modal = document.getElementById('vitalsModal');
+      modal.classList.remove('is-active');
+      unlockScroll();
+    }
+
+    // Close on click outside modal content
+    document.getElementById('vitalsModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        hideVitalsModal();
+      }
+    });
+
+    // AJAX Form submission
+    document.getElementById('vitalsForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const form = this;
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      
+      const btn = document.getElementById('btnSaveVitals');
+      const originalText = btn.textContent;
+      
+      // Show loading spinner
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Saving...';
+      
+      const formData = new FormData(form);
+      
+      function submitData() {
+        fetch("{{ url_for('core.health_vitals') }}", {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'duplicate') {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            
+            if (confirm(data.message)) {
+              formData.set('update', 'true');
+              btn.disabled = true;
+              btn.innerHTML = '<span class="spinner"></span>Updating...';
+              submitData();
+            }
+          } else if (data.status === 'success') {
+            showToast("Today's health vitals have been saved successfully.", 'success');
+            setTimeout(() => {
+              window.location.href = "{{ url_for('core.dashboard') }}";
+            }, 1500);
+          } else {
+            showToast(data.message || "An error occurred.", 'error');
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showToast("Network error. Please try again.", 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+      }
+      
+      submitData();
+    });
+
+    // Check url param ?edit=1 to auto-open modal for editing today's entry
+    document.addEventListener("DOMContentLoaded", function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('edit') === '1') {
+        const editBtn = document.querySelector('button[onclick^="showVitalsModalForEdit"]');
+        if (editBtn) {
+          editBtn.click();
+        } else {
+          showVitalsModal();
+        }
+      }
+    });
+  </script>
+{% endblock %}

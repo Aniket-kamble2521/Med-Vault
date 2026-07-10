@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="{{ url_for('static', filename='doctor.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='patient_dashboard.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='doctor.css') }}?v=2.0.3" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='patient_dashboard.css') }}?v=2.0.3" />
   </head>
   <body
     class="dr-portal"
@@ -33,19 +33,12 @@
           </span>
         </a>
         <div class="dr-topbar-actions">
-          <a href="{{ url_for('core.dashboard') }}#pd-banners" class="dr-p-bell" title="Updates" aria-label="View updates">
+          <a href="{{ url_for('core.notifications_page') }}" class="dr-p-bell" title="Updates" aria-label="View updates">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <span class="dr-p-bell-dot" aria-hidden="true"></span>
+            <span class="dr-p-bell-dot" id="bell-dot" style="display: none;" aria-hidden="true"></span>
           </a>
-          <form action="{{ url_for('auth.logout') }}" method="post" class="dr-p-logout">
-            <button type="submit" class="dr-p-logout-btn" title="Sign out" aria-label="Sign out">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </form>
           <div class="dr-profile-wrap">
             <button
               type="button"
@@ -55,7 +48,11 @@
               aria-haspopup="true"
               aria-label="Open account menu"
             >
-              <span class="dr-avatar">{{ theme.initials }}</span>
+              {% if theme.profile_photo %}
+                <img src="{{ theme.profile_photo }}" alt="User Profile" class="dr-avatar" style="object-fit: cover; border: 1.5px solid var(--accent);" />
+              {% else %}
+                <span class="dr-avatar">{{ theme.initials }}</span>
+              {% endif %}
               <span class="dr-user-meta">
                 <span class="dr-user-name">{{ theme.display_name }}</span>
                 <span class="dr-user-role">
@@ -67,56 +64,101 @@
               </svg>
             </button>
             <div class="dr-profile-menu" id="dr-profile-menu" hidden role="menu">
-              <div class="dr-profile-menu-head">
-                <span class="dr-avatar dr-avatar--menu">{{ theme.initials }}</span>
-                <div class="dr-profile-menu-ident">
-                  <strong class="dr-profile-menu-name">{{ theme.display_name }}</strong>
-                  <span class="dr-profile-menu-sub">@{{ theme.username }}</span>
-                  {% if theme.patient_id_str %}
-                    <span class="dr-profile-menu-sub">Patient ID: {{ theme.patient_id_str }}</span>
+              <div class="dr-profile-menu-head" style="display: flex; flex-direction: column; gap: 0.65rem; align-items: stretch; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                  {% if theme.profile_photo %}
+                    <img src="{{ theme.profile_photo }}" alt="Patient Photo" class="dr-avatar dr-avatar--menu" style="object-fit: cover; border: 2px solid var(--accent);" />
                   {% else %}
-                    <span class="dr-profile-menu-sub">{{ theme.specialty }}</span>
+                    <span class="dr-avatar dr-avatar--menu">{{ theme.initials }}</span>
                   {% endif %}
+                  <div class="dr-profile-menu-ident">
+                    <strong class="dr-profile-menu-name">{{ theme.display_name }}</strong>
+                    <span class="dr-profile-menu-sub">@{{ theme.username }}</span>
+                    <span class="dr-profile-menu-sub">Patient ID: {{ theme.patient_id_str }}</span>
+                  </div>
+                </div>
+                
+                <!-- Health Metrics Badges Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.25rem;">
+                  <div style="background: rgba(var(--accent-rgb), 0.08); padding: 0.35rem 0.5rem; border-radius: 8px; text-align: center; border: 1px solid rgba(var(--accent-rgb), 0.15); display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                    <span style="font-size: 0.6rem; color: var(--accent); font-weight: 700; text-transform: uppercase;">Blood:</span>
+                    <strong style="font-size: 0.75rem; color: var(--text); font-weight: 800;">{{ theme.blood_group or "N/A" }}</strong>
+                  </div>
+                  <div style="background: rgba(16, 185, 129, 0.08); padding: 0.35rem 0.5rem; border-radius: 8px; text-align: center; border: 1px solid rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                    <span style="font-size: 0.6rem; color: #10b981; font-weight: 700; text-transform: uppercase;">Score:</span>
+                    <strong style="font-size: 0.75rem; color: var(--text); font-weight: 800;">{{ theme.health_score }}%</strong>
+                  </div>
+                </div>
+                
+                <!-- Status pill -->
+                <div style="display: flex; align-items: center; justify-content: center; padding: 0.25rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;
+                  {% if theme.short_status == 'Healthy' %}
+                    background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);
+                  {% elif theme.short_status == 'Under Observation' %}
+                    background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);
+                  {% else %}
+                    background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);
+                  {% endif %}">
+                  {% if theme.short_status == 'Healthy' %}🟢{% elif theme.short_status == 'Under Observation' %}🟡{% else %}🔴{% endif %}
+                  <span style="margin-left: 0.25rem;">{{ theme.short_status }}</span>
                 </div>
               </div>
+              
               <div class="dr-profile-menu-divider" role="presentation"></div>
-              <a href="{{ url_for('core.dashboard') }}#pd-profile" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.8 2.3h.4c.4 0 .8.3.9.7l.7 2.7a3 3 0 001 1.6l2.6 2.2a5 5 0 001.6 3.7v4.9a2 2 0 01-2 2H14a2 2 0 01-2-2v-1.5"/></svg>
-                </span>
-                <span>Medical profile</span>
-              </a>
-              <a href="{{ url_for('core.dashboard') }}" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-                </span>
-                <span>Dashboard</span>
+
+              <a href="{{ url_for('core.patient_profile') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">👤</span>
+                <span>Edit Profile</span>
               </a>
               <a href="{{ url_for('core.settings') }}" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                </span>
-                <span>Appearance &amp; theme</span>
+                <span class="dr-profile-menu-ico" aria-hidden="true">🎨</span>
+                <span>Appearance &amp; Theme</span>
               </a>
-              <a href="{{ url_for('modules.roadmap') }}" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v12M8 10l4-4 4 4"/><circle cx="12" cy="12" r="10"/></svg>
-                </span>
-                <span>Health modules</span>
+              <a href="{{ url_for('core.patient_appointments') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">📅</span>
+                <span>My Appointments</span>
               </a>
-              <a href="{{ url_for('core.onboarding') }}" class="dr-profile-menu-item" role="menuitem">
-                <span class="dr-profile-menu-ico" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-                </span>
-                <span>Help &amp; guide</span>
+              <a href="{{ url_for('core.dashboard') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">📊</span>
+                <span>My Health Dashboard</span>
+              </a>
+              <a href="{{ url_for('core.emergency_info') }}" class="dr-profile-menu-item" role="menuitem" style="color: #ef4444; font-weight: 700;">
+                <span class="dr-profile-menu-ico" aria-hidden="true">🚨</span>
+                <span>Emergency QR</span>
+              </a>
+              <a href="{{ url_for('core.medical_documents') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">📄</span>
+                <span>Medical Documents</span>
+              </a>
+              <a href="{{ url_for('core.medicine_reminders') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">💊</span>
+                <span>Medicines &amp; Prescriptions</span>
+              </a>
+              <a href="{{ url_for('core.notifications_page') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">🔔</span>
+                <span>Notifications</span>
+              </a>
+              <a href="{{ url_for('core.patient_payments') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">💳</span>
+                <span>Payments</span>
+              </a>
+              <a href="{{ url_for('core.health_goals') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">❤️</span>
+                <span>Health Goals</span>
+              </a>
+              <a href="{{ url_for('core.settings') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">⚙️</span>
+                <span>Settings</span>
+              </a>
+              <a href="{{ url_for('core.change_password') }}" class="dr-profile-menu-item" role="menuitem">
+                <span class="dr-profile-menu-ico" aria-hidden="true">🔒</span>
+                <span>Change Password</span>
               </a>
               <div class="dr-profile-menu-divider" role="presentation"></div>
               <form action="{{ url_for('auth.logout') }}" method="post" class="dr-profile-menu-logout">
                 <button type="submit" class="dr-profile-menu-item dr-profile-menu-item--danger" role="menuitem">
-                  <span class="dr-profile-menu-ico" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                  </span>
-                  <span>Sign out</span>
+                  <span class="dr-profile-menu-ico" aria-hidden="true">🚪</span>
+                  <span>Logout</span>
                 </button>
               </form>
             </div>
@@ -137,7 +179,597 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    
+    <style>
+      /* Premium Alarm Overlay styling */
+      .alarm-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.85); /* Slick dark dimmed backdrop */
+        backdrop-filter: blur(10px);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+      }
+      
+      .alarm-card {
+        background: white;
+        border-radius: 24px;
+        width: 100%;
+        max-width: 480px;
+        padding: 2.5rem 2rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        animation: alarmPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+      }
+      
+      [data-theme="dark"] .alarm-card {
+        background: #1e293b;
+        border-color: #334155;
+        color: #f8fafc;
+      }
+      
+      @keyframes alarmPop {
+        0% { transform: scale(0.85); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      
+      .alarm-icon {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+      }
+      
+      .animate-pulse-fast {
+        animation: pulseFast 1.5s infinite;
+      }
+      
+      .animate-bounce-fast {
+        animation: bounceFast 0.8s infinite alternate;
+      }
+      
+      @keyframes pulseFast {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: .6; transform: scale(1.1); }
+      }
+      
+      @keyframes bounceFast {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-15px); }
+      }
+      
+      .alarm-heading {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+      
+      [data-theme="dark"] .alarm-heading {
+        color: #f1f5f9;
+      }
+      
+      .alarm-countdown {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--accent);
+        background: rgba(59, 130, 246, 0.1);
+        padding: 0.5rem 1.5rem;
+        border-radius: 12px;
+        display: inline-block;
+        margin: 0.5rem 0 1.25rem 0;
+        font-family: monospace;
+      }
+      
+      .alarm-details {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: left;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      [data-theme="dark"] .alarm-details {
+        background: #0f172a;
+      }
+      
+      .alarm-detail-item {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 0.4rem;
+        color: #334155;
+      }
+      
+      [data-theme="dark"] .alarm-detail-item {
+        border-color: #334155;
+        color: #cbd5e1;
+      }
+      
+      .alarm-detail-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      
+      .alarm-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+      
+      .alarm-btn {
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .alarm-btn:hover {
+        transform: translateY(-2px);
+      }
+      
+      .alarm-btn-primary { background: var(--accent); color: white; }
+      .alarm-btn-success { background: #10b981; color: white; }
+      .alarm-btn-warning { background: #f59e0b; color: white; }
+      .alarm-btn-danger { background: #ef4444; color: white; }
+      
+      .medicine-card-alarm {
+        max-width: 420px;
+      }
+      
+      .med-details-box {
+        background: #f0fdf4;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+      
+      [data-theme="dark"] .med-details-box {
+        background: #064e3b;
+      }
+      
+      .med-alarm-preview-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 1rem;
+        border: 3px solid white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      
+      .med-alarm-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #065f46;
+        margin: 0 0 0.5rem 0;
+      }
+      
+      [data-theme="dark"] .med-alarm-title {
+        color: #a7f3d0;
+      }
+      
+      .med-alarm-dosage, .med-alarm-instructions, .med-alarm-time {
+        font-size: 0.95rem;
+        color: #047857;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+      }
+      
+      [data-theme="dark"] .med-alarm-dosage, [data-theme="dark"] .med-alarm-instructions, [data-theme="dark"] .med-alarm-time {
+        color: #6ee7b7;
+      }
+      
+      /* Success Celebration Overlay */
+      .success-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(16, 185, 129, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .success-card {
+        text-align: center;
+        color: white;
+        animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+      }
+      
+      @keyframes successPop {
+        0% { transform: scale(0.7); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      
+      .success-checkmark {
+        font-size: 5rem;
+        background: white;
+        color: #10b981;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      }
+      
+      .success-card h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+      }
+      
+      .success-card p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+      
+      /* Badge for bell count */
+      .dr-p-bell {
+        position: relative;
+      }
+      .dr-p-bell-dot {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 700;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+      }
+    </style>
+
+    <!-- Alarm Overlay for Appointments -->
+    <div id="appointment-alarm-overlay" class="alarm-overlay" style="display: none;">
+      <div class="alarm-card">
+        <div class="alarm-icon animate-pulse-fast">⏰</div>
+        <h2 class="alarm-heading">Upcoming Appointment</h2>
+        <div class="alarm-countdown" id="appt-alarm-countdown">00:00:00</div>
+        <div class="alarm-details">
+          <div class="alarm-detail-item"><strong>Doctor:</strong> <span id="appt-alarm-doctor"></span></div>
+          <div class="alarm-detail-item"><strong>Specialty:</strong> <span id="appt-alarm-specialty"></span></div>
+          <div class="alarm-detail-item"><strong>Date/Time:</strong> <span id="appt-alarm-datetime"></span></div>
+          <div class="alarm-detail-item"><strong>Clinic:</strong> <span id="appt-alarm-clinic"></span></div>
+          <div class="alarm-detail-item"><strong>Mode:</strong> <span id="appt-alarm-type"></span></div>
+        </div>
+        <div class="alarm-actions">
+          <a href="/health-timeline" id="appt-alarm-view" class="alarm-btn alarm-btn-primary">View Appt</a>
+          <a href="/health-timeline" id="appt-alarm-join" class="alarm-btn alarm-btn-success" style="display: none;">Join Call</a>
+          <button onclick="snoozeApptAlarm()" class="alarm-btn alarm-btn-warning">Snooze</button>
+          <button onclick="dismissApptAlarm()" class="alarm-btn alarm-btn-danger">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alarm Overlay for Medications -->
+    <div id="medicine-alarm-overlay" class="alarm-overlay" style="display: none;">
+      <div class="alarm-card medicine-card-alarm">
+        <div class="alarm-icon animate-bounce-fast">💊</div>
+        <h2 class="alarm-heading">Time for Medicine</h2>
+        <div class="med-details-box">
+          <div class="med-avatar-box" id="med-alarm-img-box" style="display: none; text-align: center;">
+            <img id="med-alarm-img" src="" alt="Medicine Image" class="med-alarm-preview-img" />
+          </div>
+          <h3 class="med-alarm-title" id="med-alarm-title">Metformin 500mg</h3>
+          <div class="med-alarm-dosage" id="med-alarm-dosage">Dosage: 1 Tablet</div>
+          <div class="med-alarm-instructions" id="med-alarm-instructions">Before Food</div>
+          <div class="med-alarm-time" id="med-alarm-time">Time: 08:00 AM</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button onclick="takeMedicineAlarm()" class="alarm-btn alarm-btn-success" style="width: 100%;">Mark as Taken</button>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <button onclick="snoozeMedicineAlarm()" class="alarm-btn alarm-btn-warning">Snooze (10m)</button>
+            <button onclick="skipMedicineAlarm()" class="alarm-btn alarm-btn-danger">Skip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Overlay for taken medicine -->
+    <div id="success-celebration" class="success-overlay" style="display: none;">
+      <div class="success-card">
+        <div class="success-checkmark">✓</div>
+        <h2>Dose Logged!</h2>
+        <p>Good job staying on track with your meds.</p>
+      </div>
+    </div>
+
     <script src="{{ url_for('static', filename='app.js') }}"></script>
     <script src="{{ url_for('static', filename='doctor_profile_menu.js') }}"></script>
+    
+    <script>
+      (function() {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          setTimeout(() => {
+            Notification.requestPermission();
+          }, 3000);
+        }
+
+        let countdownInterval = null;
+        let activeApptId = null;
+        let activeApptTriggerKey = null;
+        let activeMedId = null;
+        
+        function playChime() {
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const playTone = (freq, start, duration) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, start);
+              gain.gain.setValueAtTime(0.3, start);
+              gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(start);
+              osc.stop(start + duration);
+            };
+            playTone(523.25, ctx.currentTime, 0.4); // C5
+            playTone(659.25, ctx.currentTime + 0.15, 0.6); // E5
+          } catch (err) {
+            console.warn("Audio Context blocked or failed:", err);
+          }
+        }
+        
+        function triggerVibration(pattern) {
+          if (navigator.vibrate) {
+            navigator.vibrate(pattern);
+          }
+        }
+        
+        function startCountdown(timestamp) {
+          if (countdownInterval) clearInterval(countdownInterval);
+          const countdownEl = document.getElementById('appt-alarm-countdown');
+          function update() {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = timestamp - now;
+            if (diff <= 0) {
+              countdownEl.innerText = "Starting Now!";
+              clearInterval(countdownInterval);
+              return;
+            }
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            const s = diff % 60;
+            const hStr = h.toString().padStart(2, '0');
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+            countdownEl.innerText = `${hStr}:${mStr}:${sStr}`;
+          }
+          update();
+          countdownInterval = setInterval(update, 1000);
+        }
+
+        window.showAppointmentOverlay = function(appt, trigger, triggerKey) {
+          activeApptId = appt.id;
+          activeApptTriggerKey = triggerKey;
+          
+          document.getElementById('appt-alarm-doctor').innerText = appt.doctor_name;
+          document.getElementById('appt-alarm-specialty').innerText = appt.specialization;
+          document.getElementById('appt-alarm-datetime').innerText = `${appt.date_fmt} at ${appt.time_fmt}`;
+          document.getElementById('appt-alarm-clinic').innerText = appt.clinic_name;
+          document.getElementById('appt-alarm-type').innerText = appt.consultation_type;
+          
+          const joinBtn = document.getElementById('appt-alarm-join');
+          if (appt.consultation_type === 'Online') {
+            joinBtn.style.display = 'flex';
+          } else {
+            joinBtn.style.display = 'none';
+          }
+          
+          if (document.visibilityState === 'hidden') {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification("Upcoming Appointment Reminder", {
+                body: `Appointment with ${appt.doctor_name} starts soon at ${appt.clinic_name}!`,
+                tag: `appt_${appt.id}_${trigger}`
+              });
+            }
+          } else {
+            document.getElementById('appointment-alarm-overlay').style.display = 'flex';
+            playChime();
+            triggerVibration([200, 100, 200]);
+          }
+          
+          startCountdown(appt.timestamp);
+        };
+
+        window.dismissApptAlarm = function() {
+          if (activeApptTriggerKey) {
+            localStorage.setItem(activeApptTriggerKey, 'true');
+          }
+          document.getElementById('appointment-alarm-overlay').style.display = 'none';
+          if (countdownInterval) clearInterval(countdownInterval);
+        };
+
+        window.snoozeApptAlarm = function() {
+          localStorage.setItem(`snooze_appt_${activeApptId}`, Date.now() + 10 * 60 * 1000);
+          document.getElementById('appointment-alarm-overlay').style.display = 'none';
+          if (countdownInterval) clearInterval(countdownInterval);
+        };
+
+        window.showMedicineOverlay = function(med) {
+          activeMedId = med.id;
+          
+          document.getElementById('med-alarm-title').innerText = med.title;
+          document.getElementById('med-alarm-dosage').innerText = `Dosage: ${med.dosage}`;
+          document.getElementById('med-alarm-instructions').innerText = med.instructions;
+          document.getElementById('med-alarm-time').innerText = `Scheduled: ${med.remind_at}`;
+          
+          const imgBox = document.getElementById('med-alarm-img-box');
+          const imgEl = document.getElementById('med-alarm-img');
+          if (med.med_image) {
+            imgEl.src = med.med_image;
+            imgBox.style.display = 'block';
+          } else {
+            imgBox.style.display = 'none';
+          }
+          
+          if (document.visibilityState === 'hidden') {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification("Time for Medicine", {
+                body: `Please take ${med.title} (${med.dosage}) - ${med.instructions}.`,
+                tag: `med_${med.id}`
+              });
+            }
+          } else {
+            document.getElementById('medicine-alarm-overlay').style.display = 'flex';
+            playChime();
+            triggerVibration([300, 100, 300]);
+          }
+        };
+
+        window.takeMedicineAlarm = async function() {
+          const medId = activeMedId;
+          document.getElementById('medicine-alarm-overlay').style.display = 'none';
+          try {
+            const res = await fetch(`/api/patient/medicine-reminders/${medId}/taken`, {
+              method: 'POST'
+            });
+            if (res.ok) {
+              const celebration = document.getElementById('success-celebration');
+              celebration.style.display = 'flex';
+              setTimeout(() => {
+                celebration.style.display = 'none';
+                window.location.reload();
+              }, 2000);
+            }
+          } catch (err) {
+            console.error("Error marking medicine as taken:", err);
+          }
+        };
+
+        window.skipMedicineAlarm = async function() {
+          const medId = activeMedId;
+          document.getElementById('medicine-alarm-overlay').style.display = 'none';
+          try {
+            const res = await fetch(`/api/patient/medicine-reminders/${medId}/skip`, {
+              method: 'POST'
+            });
+            if (res.ok) {
+              window.location.reload();
+            }
+          } catch (err) {
+            console.error("Error skipping medicine dose:", err);
+          }
+        };
+
+        window.snoozeMedicineAlarm = async function() {
+          const medId = activeMedId;
+          document.getElementById('medicine-alarm-overlay').style.display = 'none';
+          localStorage.setItem(`snooze_med_${medId}`, Date.now() + 10 * 60 * 1000);
+          try {
+            const formData = new FormData();
+            formData.append("minutes", "10");
+            await fetch(`/api/patient/medicine-reminders/${medId}/snooze`, {
+              method: 'POST',
+              body: formData
+            });
+          } catch (err) {
+            console.error("Error snoozing medicine reminder:", err);
+          }
+        };
+
+        async function checkReminders() {
+          try {
+            const res = await fetch('/api/patient/check-reminders');
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            // Update bell badge
+            const bellDot = document.getElementById('bell-dot');
+            if (bellDot) {
+              if (data.unread_count > 0) {
+                bellDot.innerText = data.unread_count;
+                bellDot.style.display = 'flex';
+              } else {
+                bellDot.style.display = 'none';
+              }
+            }
+            
+            // Check active overlays
+            if (document.getElementById('appointment-alarm-overlay').style.display === 'flex' ||
+                document.getElementById('medicine-alarm-overlay').style.display === 'flex') {
+              return; // Overlay already active
+            }
+
+            // Process appointments
+            if (data.appointments && data.appointments.length > 0) {
+              for (const appt of data.appointments) {
+                const diff = appt.minutes_diff;
+                let trigger = null;
+                
+                if (diff > 60 && diff <= 1440) {
+                  trigger = '24h';
+                } else if (diff > 30 && diff <= 60) {
+                  trigger = '1h';
+                } else if (diff > 0 && diff <= 30) {
+                  trigger = '30m';
+                } else if (diff >= -15 && diff <= 0) {
+                  trigger = '0m';
+                }
+                
+                if (trigger) {
+                  const triggerKey = `appt_${appt.id}_${trigger}`;
+                  const snoozeTime = localStorage.getItem(`snooze_appt_${appt.id}`);
+                  
+                  if (!localStorage.getItem(triggerKey) && (!snoozeTime || Date.now() >= parseInt(snoozeTime))) {
+                    showAppointmentOverlay(appt, trigger, triggerKey);
+                    break;
+                  }
+                }
+              }
+            }
+            
+            // Process medicines
+            if (data.medicines && data.medicines.length > 0) {
+              for (const med of data.medicines) {
+                const snoozeTime = localStorage.getItem(`snooze_med_${med.id}`);
+                if (!snoozeTime || Date.now() >= parseInt(snoozeTime)) {
+                  showMedicineOverlay(med);
+                  break;
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Error checking reminders:", err);
+          }
+        }
+        
+        checkReminders();
+        setInterval(checkReminders, 12000);
+      })();
+    </script>
   </body>
 </html>
